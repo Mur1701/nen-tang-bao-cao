@@ -1,3 +1,4 @@
+import { apiUrl } from '../../config/api'
 import { useCallback, useEffect, useState } from 'react'
 
 type HealthStatus = 'loading' | 'up' | 'down'
@@ -9,7 +10,7 @@ export function useBackendHealth() {
   const checkHealth = useCallback(async (signal?: AbortSignal) => {
     setHealth('loading')
     try {
-      const response = await fetch('/api/health', { signal })
+      const response = await fetch(apiUrl('/api/health'), { signal })
       if (!response.ok) throw new Error(`HTTP ${response.status}`)
       const data: { status?: string } = await response.json()
       if (!signal?.aborted) setHealth(data.status === 'UP' ? 'up' : 'down')

@@ -1,3 +1,4 @@
+import { apiUrl } from '../../config/api'
 export type ReportGroup = 'COST' | 'REVENUE'
 export type PeriodFilter = 'MONTH' | 'TBD'
 export type ReportStatus = 'PLANNED' | 'PREVIEW'
@@ -37,7 +38,7 @@ export interface ReportResult {
 }
 
 async function request(path: string, options?: RequestInit): Promise<Response> {
-  const response = await fetch(path, options)
+  const response = await fetch(apiUrl(path), options)
   if (!response.ok) {
     let detail = `HTTP ${response.status}`
     try {
