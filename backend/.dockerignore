@@ -1,0 +1,13 @@
+target/
+.git/
+.local-db-password.enc
+src/main/resources/application-local.yml
+src/main/resources/application-local.yml.bak_*
+**/.env
+**/.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+*.dump
+*.backup
