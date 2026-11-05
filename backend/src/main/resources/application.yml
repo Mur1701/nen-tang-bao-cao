@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: pottel-reporting-backend
+
+server:
+  port: 8081

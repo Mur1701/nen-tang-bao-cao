@@ -1,0 +1,50 @@
+:root {
+  font-family: "Segoe UI", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+body { margin: 0; min-width: 320px; }
+#root { min-height: 100vh; }
+
+.app-logo {
+  min-height: 78px;
+  padding: 18px 24px;
+  color: #ffffff;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+.app-logo-subtitle { font-size: 12px; font-weight: 400; color: #bfbfbf; letter-spacing: 0; }
+.app-sidebar { height: 100vh; overflow-y: auto; overflow-x: hidden; position: sticky !important; top: 0; }
+.app-navigation .ant-menu-title-content { font-size: 12px; }
+.app-header {
+  background: #ffffff;
+  padding: 0 24px;
+  min-height: 70px;
+  height: auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid #e8ebef;
+}
+.app-header-main, .app-header-actions { min-width: 0; }
+.app-header-label { display: flex; flex-direction: column; justify-content: center; gap: 0; line-height: 1.5; }
+.app-header-label .ant-breadcrumb { font-size: 12px; }
+.app-content { padding: 28px; background: #f5f7fa; min-width: 0; }
+.report-workspace, .dashboard-layout { max-width: 1600px; margin: 0 auto; }
+.report-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 18px; }
+.report-heading .ant-typography { word-break: break-word; }
+.report-filter-card, .report-result-card { margin-bottom: 18px; }
+.report-filter-grid { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 14px; }
+.report-filter-item { display: flex; flex-direction: column; gap: 7px; }
+.report-filter-actions { display: flex; align-items: flex-end; flex-wrap: wrap; gap: 8px; }
+.report-result-metrics { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 18px; }
+.report-table-toolbar { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 9px; }
+@media (max-width: 850px) {
+  .app-header { padding: 8px 12px; }
+  .app-header-actions .ant-select { display: none; }
+  .app-content { padding: 16px; }
+  .report-heading { flex-direction: column; }
+  .report-table-toolbar { justify-content: flex-start; }
+}

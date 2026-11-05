@@ -1,0 +1,11 @@
+﻿spring:
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:pottel_bss}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    hikari:
+      read-only: true
+      maximum-pool-size: 2
+  sql:
+    init:
+      mode: never
