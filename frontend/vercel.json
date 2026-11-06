@@ -1,0 +1,12 @@
+{
+    "rewrites":  [
+                     {
+                         "source":  "/api/:path*",
+                         "destination":  "https://nen-tang-bao-cao.onrender.com/api/:path*"
+                     },
+                     {
+                         "source":  "/(.*)",
+                         "destination":  "/index.html"
+                     }
+                 ]
+}
