@@ -18,6 +18,7 @@ import ReportBlueprintView from './ReportBlueprintView'
 
 const { Title, Text, Paragraph } = Typography
 const currentMonth = () => dayjs().format('YYYY-MM')
+const showPackagePreview = import.meta.env.VITE_ENABLE_I1_PACKAGE_PREVIEW === 'true'
 const formatCount = (n: number) => n.toLocaleString('vi-VN')
 
 interface WorkspaceProps {
@@ -28,7 +29,7 @@ interface WorkspaceProps {
 export default function ReportsWorkspace({ selectedCode, onSelectReport }: WorkspaceProps) {
   const [catalog, setCatalog] = useState<ReportDefinition[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
-  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50 })
+  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: 'AGENCY_KITS' })
   const [result, setResult] = useState<ReportResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -141,7 +142,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   const reset = () => {
     requestVersion.current += 1
     setLoading(false)
-    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50 })
+    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: 'AGENCY_KITS' })
     setResult(null)
     setError(null)
     setQuickSearch('')
@@ -207,6 +208,22 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
                   style={{ width: 195 }}
                 />
               </div>
+              {showPackagePreview && (
+                <div className="report-filter-item">
+                  <Text strong>Đối soát KIT — không phải báo cáo tiền</Text>
+                  <Segmented
+                    value={query.previewMode ?? 'AGENCY_KITS'}
+                    options={[
+                      { label: 'Theo đại lý', value: 'AGENCY_KITS' },
+                      { label: 'Theo đại lý × gói', value: 'PACKAGE_KITS' },
+                    ]}
+                    onChange={value => {
+                      setQuery(q => ({ ...q, previewMode: value as 'AGENCY_KITS' | 'PACKAGE_KITS', page: 1 }))
+                      invalidateResult()
+                    }}
+                  />
+                </div>
+              )}
               <div className="report-filter-item">
                 <Text strong>Số dòng / trang</Text>
                 <Select

@@ -1,3 +1,3 @@
 package vn.pottel.reporting.report;
 
-public record ReportQuery(String month, Integer agencyId, Integer page, Integer pageSize) {}
+public record ReportQuery(String month, Integer agencyId, Integer page, Integer pageSize, String previewMode) {}

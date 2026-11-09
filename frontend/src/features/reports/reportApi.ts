@@ -17,6 +17,7 @@ export interface ReportQuery {
   agencyId: number | null
   page: number
   pageSize: number
+  previewMode?: 'AGENCY_KITS' | 'PACKAGE_KITS'
 }
 
 export interface ReportColumn {

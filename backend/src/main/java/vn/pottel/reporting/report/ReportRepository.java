@@ -14,6 +14,7 @@ public class ReportRepository {
     public ReportRepository(NamedParameterJdbcTemplate jdbc) { this.jdbc = jdbc; }
 
     private static final String FROM = " FROM reporting.fn_i1_activated_kits(:monthStart, :agencyId) ";
+    private static final String FROM_PACKAGES = " FROM reporting.fn_i1_kit_by_package_preview(:monthStart, :agencyId) ";
     private MapSqlParameterSource args(LocalDate monthStart, Integer agencyId) {
         return new MapSqlParameterSource()
                 .addValue("monthStart", monthStart)
@@ -28,5 +29,14 @@ public class ReportRepository {
         var params = args(monthStart, agencyId).addValue("limit", limit).addValue("offset", offset);
         return jdbc.queryForList("SELECT agency_id, agency_name, activated_kit_count " + FROM
                 + " ORDER BY agency_id LIMIT :limit OFFSET :offset", params);
+    }
+    public long countI1Packages(LocalDate monthStart, Integer agencyId) {
+        return jdbc.queryForObject("SELECT count(*) " + FROM_PACKAGES, args(monthStart, agencyId), Long.class);
+    }
+
+    public List<Map<String, Object>> i1Packages(LocalDate monthStart, Integer agencyId, int limit, long offset) {
+        var params = args(monthStart, agencyId).addValue("limit", limit).addValue("offset", offset);
+        return jdbc.queryForList("SELECT agency_id, agency_name, package_code, activated_kit_count, agency_kit_total " + FROM_PACKAGES
+                + " ORDER BY agency_id NULLS LAST, package_code NULLS LAST LIMIT :limit OFFSET :offset", params);
     }
 }
