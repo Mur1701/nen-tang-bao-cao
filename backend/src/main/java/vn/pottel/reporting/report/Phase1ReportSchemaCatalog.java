@@ -27,7 +27,9 @@ public final class Phase1ReportSchemaCatalog {
     }
     private static Schema s(String code, List<String> filters, List<Column> columns,
                             List<DynamicGroup> days, String status, String blocker) {
-        return new Schema(code, "SRS_" + code.replace(".", "") + ".md v0.1 DRAFT (04/11/2026)",
+        return new Schema(code, "SRS_" + code.replace(".", "")
+                        + ".md " + ("I.1".equals(code) ? "v0.3" : "v0.1")
+                        + " DRAFT (04/11/2026)",
                 filters, columns, days, status, false, blocker);
     }
 
