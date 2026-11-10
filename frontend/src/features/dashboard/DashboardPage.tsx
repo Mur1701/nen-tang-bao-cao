@@ -35,11 +35,11 @@ export default function DashboardPage() {
       </Row>
       <Card title="Mở nhanh báo cáo" style={{ marginTop: 18 }}>
         <Space wrap>
-          <Button type="primary" onClick={() => navigate('/reports/cost/i1')}>I.1 — Đối soát KIT kỹ thuật</Button>
+          <Button type="primary" onClick={() => navigate('/reports/cost/i1')}>I.1 — Khuyến khích theo sản lượng</Button>
           <Button onClick={() => navigate('/reports/revenue/ii1')}>II.1 — Phân bổ doanh thu</Button>
         </Space>
         <Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-          Các báo cáo sử dụng phương án tham chiếu từ BSS cũ; số liệu cần đối chiếu trước khi dùng để thanh toán. I.1 có chế độ đối soát KIT kỹ thuật riêng.
+          Chọn báo cáo để xem số liệu theo kỳ. Biểu đồ doanh thu hỗ trợ so sánh các tháng; bảng chi tiết và Excel dùng cho đối chiếu.
         </Paragraph>
       </Card>
     </div>
