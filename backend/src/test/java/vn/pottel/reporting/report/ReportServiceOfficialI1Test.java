@@ -31,12 +31,15 @@ class ReportServiceOfficialI1Test {
     }
 
     @Test
-    void otherReportCodesRemainUnimplemented() {
-        var service = new ReportService(catalog, repo, true, false, false);
-        var error = assertThrows(ResponseStatusException.class,
-                () -> service.run("I.2", query()));
-        assertEquals(HttpStatus.NOT_IMPLEMENTED, error.getStatusCode());
-        verifyNoInteractions(repo);
+    void otherReportCodesUseReferenceQueries() {
+        when(repo.countReference("I.2", MONTH, null)).thenReturn(0L);
+        when(repo.referenceJson("I.2", MONTH, null, 50, 0L)).thenReturn(List.of());
+        var service = new ReportService(catalog, repo, false, false, false);
+        var result = service.run("I.2", query());
+        assertEquals("I.2", result.code());
+        assertTrue(result.preview());
+        assertEquals(10, result.columns().size());
+        verify(repo).countReference("I.2", MONTH, null);
     }
 
     @Test
