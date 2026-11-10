@@ -13,6 +13,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.csrf.InvalidCsrfTokenException;
+import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import vn.pottel.reporting.auth.AdminLoginThrottle;
 import vn.pottel.reporting.auth.AdminSessionValidationFilter;
@@ -82,7 +84,10 @@ public class SecurityConfig {
                 .accessDeniedHandler((request, response, exception) -> {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    response.getWriter().write("{\"error\":\"Access denied or CSRF token invalid\"}");
+                    String reason = exception instanceof MissingCsrfTokenException ? "CSRF_TOKEN_MISSING"
+                            : exception instanceof InvalidCsrfTokenException ? "CSRF_TOKEN_INVALID"
+                            : "ACCESS_DENIED";
+                    response.getWriter().write("{\"error\":\"" + reason + "\"}");
                 }));
         http.addFilterBefore(throttle, UsernamePasswordAuthenticationFilter.class);
         http.addFilterAfter(new AdminSessionValidationFilter(users), UsernamePasswordAuthenticationFilter.class);
