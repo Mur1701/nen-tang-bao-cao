@@ -18,7 +18,6 @@ import ReportBlueprintView from './ReportBlueprintView'
 
 const { Title, Text, Paragraph } = Typography
 const currentMonth = () => dayjs().format('YYYY-MM')
-const showPackagePreview = import.meta.env.VITE_ENABLE_I1_PACKAGE_PREVIEW === 'true'
 const formatCount = (n: number) => n.toLocaleString('vi-VN')
 
 interface WorkspaceProps {
@@ -29,7 +28,7 @@ interface WorkspaceProps {
 export default function ReportsWorkspace({ selectedCode, onSelectReport }: WorkspaceProps) {
   const [catalog, setCatalog] = useState<ReportDefinition[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
-  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: 'AGENCY_KITS' })
+  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50 })
   const [result, setResult] = useState<ReportResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
@@ -64,7 +63,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
 
   const navigation = findReport(selectedCode)
   const definition = catalog.find(r => r.code === selectedCode)
-  const isPreview = definition?.status === 'PREVIEW'
+  const isRunnable = definition?.status === 'PREVIEW' || definition?.status === 'IMPLEMENTING'
   const groups = useMemo(() => ([
     {
       label: 'Chi phí',
@@ -101,7 +100,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   }))
 
   async function run(patch?: Partial<ReportQuery>) {
-    if (!isPreview) return
+    if (!isRunnable) return
     const input = { ...query, ...patch }
     const version = ++requestVersion.current
     setLoading(true)
@@ -142,7 +141,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   const reset = () => {
     requestVersion.current += 1
     setLoading(false)
-    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: 'AGENCY_KITS' })
+    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50 })
     setResult(null)
     setError(null)
     setQuickSearch('')
@@ -157,8 +156,8 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
           <Title level={3} style={{ margin: '5px 0 6px' }}>{definition?.title ?? navigation?.title ?? selectedCode}</Title>
           <Text type="secondary">{definition?.description ?? 'Báo cáo thuộc danh mục Phase 1'}</Text>
         </div>
-        <Tag color={isPreview ? 'blue' : definition?.status === 'PLANNED' ? 'default' : 'orange'}>
-          {isPreview ? 'Preview kỹ thuật' : definition?.status === 'PLANNED' ? 'Chưa triển khai' : 'Đang kiểm tra trạng thái'}
+        <Tag color={definition?.status === 'IMPLEMENTING' ? 'orange' : definition?.status === 'PREVIEW' ? 'blue' : definition?.status === 'PLANNED' ? 'default' : 'orange'}>
+          {definition?.status === 'IMPLEMENTING' ? 'Đang tích hợp Stored Function' : definition?.status === 'PREVIEW' ? 'Preview kỹ thuật' : definition?.status === 'PLANNED' ? 'Chưa triển khai' : 'Đang kiểm tra trạng thái'}
         </Tag>
       </div>
 
@@ -180,7 +179,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
             />
           </div>
           {catalogError && <Alert showIcon type="warning" message="Không lấy được danh mục từ backend" description={catalogError} />}
-          {isPreview ? (
+          {isRunnable ? (
             <div className="report-filter-grid">
               <div className="report-filter-item">
                 <Text strong>Tháng báo cáo</Text>
@@ -208,22 +207,6 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
                   style={{ width: 195 }}
                 />
               </div>
-              {showPackagePreview && (
-                <div className="report-filter-item">
-                  <Text strong>Đối soát KIT — không phải báo cáo tiền</Text>
-                  <Segmented
-                    value={query.previewMode ?? 'AGENCY_KITS'}
-                    options={[
-                      { label: 'Theo đại lý', value: 'AGENCY_KITS' },
-                      { label: 'Theo đại lý × gói', value: 'PACKAGE_KITS' },
-                    ]}
-                    onChange={value => {
-                      setQuery(q => ({ ...q, previewMode: value as 'AGENCY_KITS' | 'PACKAGE_KITS', page: 1 }))
-                      invalidateResult()
-                    }}
-                  />
-                </div>
-              )}
               <div className="report-filter-item">
                 <Text strong>Số dòng / trang</Text>
                 <Select
