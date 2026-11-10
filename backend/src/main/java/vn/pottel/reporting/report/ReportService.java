@@ -66,7 +66,7 @@ public class ReportService {
             var rows = repo.i1(q.monthStart(), q.agencyId(), q.size(),
                     (long) (q.page() - 1) * q.size());
             return new ReportResult("I.1", catalog.get("I.1").title(), false,
-                    "Báo cáo I.1 theo nguồn dữ liệu nghiệp vụ đã được kiểm chứng.",
+                    "I.1 chưa nghiệm thu nghiệp vụ; không dùng số liệu để thanh toán.",
                     I1OfficialContract.columns(), rows, q.page(), q.size(), total);
         } catch (DataAccessException e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -86,7 +86,7 @@ public class ReportService {
                         "Tối đa 5000 dòng Excel; không xuất file thiếu dòng");
             var rows = repo.i1(q.monthStart(), q.agencyId(), (int) total, 0);
             return new ReportResult("I.1", catalog.get("I.1").title(), false,
-                    "Báo cáo I.1 theo nguồn dữ liệu nghiệp vụ đã được kiểm chứng.",
+                    "I.1 chưa nghiệm thu nghiệp vụ; không dùng số liệu để thanh toán.",
                     I1OfficialContract.columns(), rows, 1, rows.size(), total);
         } catch (DataAccessException e) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
