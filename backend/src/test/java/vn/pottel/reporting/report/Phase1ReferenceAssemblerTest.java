@@ -26,7 +26,8 @@ class Phase1ReferenceAssemblerTest {
         assertTrue(result.preview());
         assertEquals(14, result.columns().size());
         assertEquals("008412345678", result.rows().getFirst().get("msisdn"));
-        assertEquals("150000.0", result.rows().getFirst().get("revenue_gross"));
+        assertEquals(0, new java.math.BigDecimal(String.valueOf(result.rows().getFirst().get("revenue_gross")))
+                .compareTo(new java.math.BigDecimal("150000.00")));
         assertEquals("19480.52", result.rows().getFirst().get("day_current_2026-10-31_net"));
         assertTrue(result.columns().stream().anyMatch(c ->
                 c.groupPath().contains("2026-11-01")));
