@@ -13,6 +13,31 @@ export interface ReportDefinition {
   description: string
 }
 
+export interface ReportSchemaColumn {
+  key: string
+  title: string
+  type: 'text' | 'integer' | 'decimal' | 'datetime'
+  group: string | null
+}
+
+export interface ReportSchemaDynamicGroup {
+  key: string
+  title: string
+  period: 'CURRENT_MONTH' | 'NEXT_MONTH'
+  measures: string[]
+}
+
+export interface ReportSchema {
+  code: string
+  source: string
+  filters: ('month' | 'agencyId')[]
+  columns: ReportSchemaColumn[]
+  dynamicGroups: ReportSchemaDynamicGroup[]
+  status: string
+  executable: boolean
+  blocker: string
+}
+
 export interface ReportQuery {
   month: string
   agencyId: number | null
@@ -80,6 +105,15 @@ async function postOptions(query: ReportQuery): Promise<RequestInit> {
 
 export async function listReports(): Promise<ReportDefinition[]> {
   return (await request('/api/reports')).json() as Promise<ReportDefinition[]>
+}
+
+export async function getReportSchema(code: string): Promise<ReportSchema> {
+  return (await request(`/api/reports/${encodeURIComponent(code)}/schema`))
+    .json() as Promise<ReportSchema>
+}
+
+export async function listReportSchemas(): Promise<ReportSchema[]> {
+  return (await request('/api/reports/schemas')).json() as Promise<ReportSchema[]>
 }
 
 export async function runReport(code: string, query: ReportQuery): Promise<ReportResult> {
