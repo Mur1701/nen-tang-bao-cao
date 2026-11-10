@@ -11,7 +11,7 @@ import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import {
   exportReport, listReports, runReport, loadRevenueTrend,
-  type RevenueTrendPoint, type ReportDefinition, type ReportQuery, type ReportResult,
+  type RevenueTrend, type ReportDefinition, type ReportQuery, type ReportResult,
 } from './reportApi'
 import { findReport } from './reportNavigation'
 import { formatGroupHeader, formatReportMonth, formatReportValue, normalizeSearch } from './reportFormat'
@@ -21,7 +21,6 @@ import RevenueTrendChart from './RevenueTrendChart'
 const { Title, Text, Paragraph } = Typography
 const currentMonth = () => dayjs().format('YYYY-MM')
 const formatCount = (n: number) => n.toLocaleString('vi-VN')
-const showPackagePreview = import.meta.env.VITE_ENABLE_I1_PACKAGE_PREVIEW === 'true'
 
 interface WorkspaceProps {
   selectedCode: string
@@ -31,12 +30,12 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
   const [catalog, setCatalog] = useState<ReportDefinition[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
   const [appliedQuery, setAppliedQuery] = useState<ReportQuery | null>(null)
-  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined })
+  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'LEGACY_REFERENCE' : undefined })
   const [result, setResult] = useState<ReportResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [trend, setTrend] = useState<RevenueTrendPoint[] | null>(null)
+  const [trend, setTrend] = useState<RevenueTrend | null>(null)
   const [trendVisible, setTrendVisible] = useState(false)
   const [trendLoading, setTrendLoading] = useState(false)
   const [trendError, setTrendError] = useState<string | null>(null)
@@ -61,7 +60,7 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
     setSearchInput('')
     setQuickSearch('')
     setHiddenColumns([])
-    setQuery(q => ({ ...q, page: 1, agencyId: selectedCode === 'I.1' || selectedCode === 'I.2' ? q.agencyId : null, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined }))
+    setQuery(q => ({ ...q, page: 1, agencyId: selectedCode === 'I.1' || selectedCode === 'I.2' ? q.agencyId : null, previewMode: selectedCode === 'I.1' ? 'LEGACY_REFERENCE' : undefined }))
   }, [selectedCode])
 
   useEffect(() => {
@@ -148,12 +147,12 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
   async function toggleTrend() {
     if (trendVisible) { setTrendVisible(false); return }
     if (trend) { setTrendVisible(true); return }
-    if (!appliedQuery || selectedCode !== 'II.5') return
+    if (!appliedQuery || !selectedCode.startsWith('II.')) return
     const version = ++trendRequest.current
     setTrendLoading(true)
     setTrendError(null)
     try {
-      const data = await loadRevenueTrend(appliedQuery)
+      const data = await loadRevenueTrend(selectedCode, appliedQuery)
       if (version === trendRequest.current) { setTrend(data); setTrendVisible(true) }
     } catch (e) {
       if (version === trendRequest.current) setTrendError((e as Error).message)
@@ -184,7 +183,7 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
   const reset = () => {
     requestVersion.current += 1
     setLoading(false)
-    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined })
+    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'LEGACY_REFERENCE' : undefined })
     setResult(null)
     setAppliedQuery(null)
     setError(null)
@@ -199,11 +198,9 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
         <div>
           <Text type="secondary">{navigation?.group === 'REVENUE' ? 'Báo cáo doanh thu' : 'Báo cáo chi phí'} · {selectedCode}</Text>
           <Title level={3} style={{ margin: '5px 0 6px' }}>{definition?.title ?? navigation?.title ?? selectedCode}</Title>
-          <Text type="secondary">{definition?.description ?? 'Báo cáo thuộc danh mục Phase 1'}</Text>
+          <Text type="secondary">{'Chọn kỳ báo cáo để xem dữ liệu và so sánh theo thời gian.'}</Text>
         </div>
-        <Tag color={definition?.status === 'REFERENCE' ? 'blue' : definition?.status === 'IMPLEMENTING' ? 'orange' : definition?.status === 'PREVIEW' ? 'blue' : definition?.status === 'PLANNED' ? 'default' : 'orange'}>
-          {definition?.status === 'REFERENCE' ? 'Tham chiếu BSS cũ (chưa nghiệm thu)' : definition?.status === 'IMPLEMENTING' ? 'Đang tích hợp Stored Function' : definition?.status === 'PREVIEW' ? 'Preview kỹ thuật' : definition?.status === 'PLANNED' ? 'Chưa triển khai' : 'Đang kiểm tra trạng thái'}
-        </Tag>
+
       </div>
 
       <Card title="Điều kiện báo cáo" className="report-filter-card">
@@ -237,25 +234,6 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
                   }}
                   style={{ width: 195 }}
                 />
-              </div>
-              )}
-              {selectedCode === 'I.1' && (
-              <div className="report-filter-item">
-                <Text strong>Chế độ I.1</Text>
-                <Segmented
-                  value={query.previewMode ?? 'OFFICIAL'}
-                  options={[
-                    { label: 'Đối soát KIT (kỹ thuật)', value: 'AGENCY_KITS' },
-                    ...(showPackagePreview ? [{ label: 'KIT theo đại lý × gói', value: 'PACKAGE_KITS' }] : []),
-                    { label: 'Tính theo BSS cũ (tham chiếu)', value: 'LEGACY_REFERENCE' },
-                    { label: 'I.1 chính thức (chưa nghiệm thu)', value: 'OFFICIAL' },
-                  ]}
-                  onChange={value => {
-                    setQuery(q => ({ ...q, previewMode: value === 'OFFICIAL' ? undefined : value as 'AGENCY_KITS' | 'PACKAGE_KITS' | 'LEGACY_REFERENCE', page: 1 }))
-                    invalidateResult()
-                  }}
-                />
-                <Text type="secondary">KIT chỉ dùng đối soát. Chế độ BSS cũ tính theo phương án kế thừa, chưa nghiệm thu và không dùng để thanh toán.</Text>
               </div>
               )}
               <div className="report-filter-item">
@@ -300,22 +278,22 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
 
       {result && (
         <Card className="report-result-card" title={<Space wrap><span>Kết quả báo cáo</span><Tag color="blue">{result.code}</Tag></Space>}>
-          {result.notice && <Alert style={{ marginBottom: 16 }} type="warning" showIcon message={result.notice} />}
+          {result.notice && <details className="report-data-notice"><summary>Thông tin nguồn và cách tính</summary><Text type="secondary">{result.notice}</Text></details>}
           <div className="report-result-metrics">
             <Space size="large" wrap>
               <div><Text type="secondary">Tổng số dòng</Text><div><Text strong>{formatCount(result.totalRows)}</Text></div></div>
               <div><Text type="secondary">Trang hiện tại</Text><div><Text strong>{result.page}</Text></div></div>
               <div><Text type="secondary">Kỳ đã chạy</Text><div><Text strong>{formatReportMonth(appliedQuery?.month ?? query.month)}</Text></div></div>
             </Space>
-            <Tag>Không tính tổng tài chính ở frontend</Tag>
+
           </div>
-          {selectedCode === 'II.5' && (
+          {selectedCode.startsWith('II.') && (
             <div className="revenue-trend-section">
               <Button onClick={() => void toggleTrend()} loading={trendLoading}>
-                {trendVisible ? 'Ẩn biểu đồ xu hướng' : 'Xem biểu đồ xu hướng 6 tháng'}
+                {trendVisible ? 'Ẩn biểu đồ xu hướng' : 'Xem xu hướng 6 tháng'}
               </Button>
               {trendError && <Alert type="warning" showIcon message="Không tải được biểu đồ" description={trendError} style={{ marginTop: 8 }} />}
-              {trendVisible && trend && <RevenueTrendChart points={trend} />}
+              {trendVisible && trend && <RevenueTrendChart trend={trend} />}
             </div>
           )}
           <div className="report-table-toolbar">
