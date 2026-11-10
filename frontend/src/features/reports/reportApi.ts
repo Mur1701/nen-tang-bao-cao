@@ -2,7 +2,7 @@ import { apiUrl } from '../../config/api'
 import { csrfHeader } from '../auth/authApi'
 export type ReportGroup = 'COST' | 'REVENUE'
 export type PeriodFilter = 'MONTH' | 'TBD'
-export type ReportStatus = 'PLANNED' | 'PREVIEW'
+export type ReportStatus = 'PLANNED' | 'PREVIEW' | 'IMPLEMENTING'
 
 export interface ReportDefinition {
   code: string
@@ -18,7 +18,7 @@ export interface ReportQuery {
   agencyId: number | null
   page: number
   pageSize: number
-  previewMode?: 'AGENCY_KITS' | 'PACKAGE_KITS'
+
 }
 
 export interface ReportColumn {
@@ -94,7 +94,7 @@ export async function exportReport(code: string, query: ReportQuery): Promise<vo
   try {
     const a = document.createElement('a')
     a.href = url
-    a.download = `pottel-${code.replace('.', '-')}-preview.xlsx`
+    a.download = `pottel-${code.replace('.', '-')}.xlsx`
     document.body.appendChild(a)
     a.click()
     a.remove()
