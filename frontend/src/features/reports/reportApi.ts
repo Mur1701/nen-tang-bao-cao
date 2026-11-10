@@ -53,6 +53,12 @@ export interface ReportColumn {
   groupPath?: string[]
 }
 
+export interface RevenueTrendPoint {
+  month: string
+  incurredGross: string | null
+  allocatedGross: string | null
+}
+
 export interface ReportResult {
   code: string
   title: string
@@ -120,6 +126,11 @@ export async function listReportSchemas(): Promise<ReportSchema[]> {
 export async function runReport(code: string, query: ReportQuery): Promise<ReportResult> {
   return (await request(`/api/reports/${encodeURIComponent(code)}/run`, await postOptions(query)))
     .json() as Promise<ReportResult>
+}
+
+export async function loadRevenueTrend(query: ReportQuery): Promise<RevenueTrendPoint[]> {
+  return (await request('/api/reports/II.5/trend', await postOptions(query)))
+    .json() as Promise<RevenueTrendPoint[]>
 }
 
 export async function exportReport(code: string, query: ReportQuery): Promise<void> {
