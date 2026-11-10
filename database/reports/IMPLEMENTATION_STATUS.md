@@ -4,6 +4,9 @@
 
 # Phase 1 — triển khai báo cáo Stored Functions (10/11/2026)
 
+> **UX / Doanh thu — cập nhật 10/11/2026:** Người dùng chỉ thấy **một chế độ I.1** (frontend gửi `LEGACY_REFERENCE`), không có thanh chọn KIT/official gây 503; các đường KIT kiểm thử vẫn tồn tại ở backend. Xóa badge trạng thái BSS lặp, tập trung mô tả nghiệp vụ; ghi chú nguồn & kiểm chứng nằm trong mục mở rộng, không bị xóa. **II.1–II.5 đều có biểu đồ 6 mốc tháng làm chế độ xem ưu tiên**, dùng truy vấn PostgreSQL tổng hợp đủ dữ liệu theo từng report, bảng chi tiết và Excel vẫn được bảo lưu. PostgreSQL fixture có kiểm thử 5 xu hướng. Docs: `frontend/UX_STANDARD.md`. GitHub Actions CI: PASS code tại `69dd5a96e`, source mới nhất sau docs cần xác nhận run riêng. Local UI/DB chưa đối chiếu trực quan.
+>
+
 > **UX Phase 1 — 10/11/2026:** Đã cập nhật SPA dùng chung: locale Việt cho DatePicker/Day.js; formatter ngày `dd/MM/yyyy`, ngày giờ `dd/MM/yyyy HH:mm:ss`, số tiền/dấu ngăn cách theo tiếng Việt mà không tính lại; xuất Excel ngày giờ dạng native date; tìm kiếm chỉ khi Enter; bỏ dropdown chọn báo cáo lặp với sidebar; cố định appliedQuery khi xuất Excel. Đã có biểu đồ doanh thu II.5 6 tháng qua API tổng hợp toàn bộ kỳ (`/api/reports/II.5/trend`) chỉ tải khi người dùng chọn, không tổng hợp trên một trang bảng. Tài liệu: `frontend/UX_STANDARD.md`. Kết quả CI sẽ kiểm chứng riêng cho commit này; chưa xác nhận giao diện local qua trình duyệt.
 >
 
