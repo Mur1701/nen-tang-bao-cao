@@ -16,7 +16,7 @@ export interface ReportDefinition {
 export interface ReportSchemaColumn {
   key: string
   title: string
-  type: 'text' | 'integer' | 'decimal' | 'datetime'
+  type: 'text' | 'integer' | 'decimal' | 'date' | 'datetime'
   group: string | null
 }
 
