@@ -123,9 +123,51 @@ public class ReportService {
         );
     }
 
+
+    private final Phase1ReportSchemaCatalog referenceSchemas = new Phase1ReportSchemaCatalog();
+
+    /**
+     * User-approved migration baseline: SRS takes precedence; legacy BSS
+     * supplies missing implementation rules. Results are explicitly labeled
+     * reference estimates until SQL/amounts are verified on local PostgreSQL.
+     */
+    private ReportResult reference(String code, ReportQuery input, boolean export) {
+        try { catalog.get(code); }
+        catch (java.util.NoSuchElementException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo");
+        }
+        var q = normalize(input);
+        var schema = referenceSchemas.require(code);
+        if (input.previewMode() != null
+                && !"LEGACY_REFERENCE".equalsIgnoreCase(input.previewMode()))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "previewMode chỉ áp dụng I.1 KIT hoặc LEGACY_REFERENCE");
+        try {
+            long total = repo.countReference(code.toUpperCase(java.util.Locale.ROOT),
+                    q.monthStart(), q.agencyId());
+            if (export && total > 5000)
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Tối đa 5000 dòng Excel; không xuất file thiếu dòng");
+            int limit = export ? (int) total : q.size();
+            long offset = export ? 0L : (long) (q.page() - 1) * q.size();
+            var json = repo.referenceJson(code.toUpperCase(java.util.Locale.ROOT),
+                    q.monthStart(), q.agencyId(), limit, offset);
+            return Phase1ReferenceAssembler.build(schema.code(),
+                    catalog.get(schema.code()).title(), schema, json,
+                    export ? 1 : q.page(), export ? json.size() : q.size(), total);
+        } catch (DataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "SQL baseline BSS chưa được cài trên PostgreSQL local; "
+                    + "cần 00_PHASE1_REFERENCE_CORE.sql và 01_PHASE1_LEGACY_REPORTS.sql");
+        }
+    }
+
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public ReportResult run(String code, ReportQuery query) {
         if (requireKitPreviewMode(code, query)) return kitPreview(code, query, false);
+        if (!"I.1".equalsIgnoreCase(code) || (query != null
+                && "LEGACY_REFERENCE".equalsIgnoreCase(query.previewMode())))
+            return reference(code, query, false);
         requireOfficialI1(code);
         var q = normalize(query);
         try {
@@ -145,6 +187,9 @@ public class ReportService {
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public ReportResult exportData(String code, ReportQuery query) {
         if (requireKitPreviewMode(code, query)) return kitPreview(code, query, true);
+        if (!"I.1".equalsIgnoreCase(code) || (query != null
+                && "LEGACY_REFERENCE".equalsIgnoreCase(query.previewMode())))
+            return reference(code, query, true);
         requireOfficialI1(code);
         var q = normalize(query);
         try {
