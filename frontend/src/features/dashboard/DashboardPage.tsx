@@ -35,11 +35,11 @@ export default function DashboardPage() {
       </Row>
       <Card title="Mở nhanh báo cáo" style={{ marginTop: 18 }}>
         <Space wrap>
-          <Button type="primary" onClick={() => navigate('/reports/cost/i1')}>I.1 — Xem trước kỹ thuật</Button>
+          <Button type="primary" onClick={() => navigate('/reports/cost/i1')}>I.1 — Đối soát KIT kỹ thuật</Button>
           <Button onClick={() => navigate('/reports/revenue/ii1')}>II.1 — Phân bổ doanh thu</Button>
         </Space>
         <Paragraph type="secondary" style={{ marginTop: 12, marginBottom: 0 }}>
-          I.1 mới là luồng preview; các báo cáo khác hiển thị trạng thái triển khai thực tế, không có dữ liệu mẫu giả.
+          I.1 có chế độ đối soát KIT kỹ thuật riêng (khi được bật local). Báo cáo tài chính chính thức chưa nghiệm thu; 11 báo cáo khác chưa triển khai.
         </Paragraph>
       </Card>
     </div>
