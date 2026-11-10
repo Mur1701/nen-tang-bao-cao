@@ -81,4 +81,28 @@ class I1ExcelExporterTest {
         }
     }
 
+
+    @Test
+    void excelDatesUseNativeDateCellsWithoutLosingTime() throws Exception {
+        var cols = List.of(
+                new ReportResult.Column("registered", "Ngày đăng ký", "date"),
+                new ReportResult.Column("activated", "Thời gian kích hoạt", "datetime"),
+                new ReportResult.Column("msisdn", "Số thuê bao", "text")
+        );
+        var row = Map.<String, Object>of(
+                "registered", "2026-11-10",
+                "activated", "2026-11-10T09:30:45+07:00",
+                "msisdn", "008400001234"
+        );
+        var result = new ReportResult("II.1", "Kiểm thử", true, "",
+                cols, List.of(row), 1, 50, 1);
+        try (var wb = WorkbookFactory.create(new ByteArrayInputStream(new ReportExcelExporter().toXlsx(result)))) {
+            var sheet = wb.getSheetAt(0);
+            assertEquals(CellType.NUMERIC, sheet.getRow(1).getCell(0).getCellType());
+            assertEquals("dd/mm/yyyy", sheet.getRow(1).getCell(0).getCellStyle().getDataFormatString());
+            assertEquals(java.time.LocalDateTime.of(2026, 11, 10, 9, 30, 45),
+                    sheet.getRow(1).getCell(1).getLocalDateTimeCellValue());
+            assertEquals("008400001234", sheet.getRow(1).getCell(2).getStringCellValue());
+        }
+    }
 }
