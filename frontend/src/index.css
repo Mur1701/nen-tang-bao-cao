@@ -48,3 +48,7 @@ body { margin: 0; min-width: 320px; }
   .report-heading { flex-direction: column; }
   .report-table-toolbar { justify-content: flex-start; }
 }
+
+/* Admin-only login: shares the Pottel SPA theme, no duplicated report shell. */
+.pottel-login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f7fa; padding: 18px; }
+.pottel-login-card { width: 100%; max-width: 440px; box-shadow: 0 8px 36px rgba(12, 35, 65, .08); }

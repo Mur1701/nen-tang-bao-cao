@@ -1,4 +1,5 @@
 import { apiUrl } from '../../config/api'
+import { csrfHeader } from '../auth/authApi'
 export type ReportGroup = 'COST' | 'REVENUE'
 export type PeriodFilter = 'MONTH' | 'TBD'
 export type ReportStatus = 'PLANNED' | 'PREVIEW'
@@ -39,8 +40,10 @@ export interface ReportResult {
 }
 
 async function request(path: string, options?: RequestInit): Promise<Response> {
-  const response = await fetch(apiUrl(path), options)
+  const response = await fetch(apiUrl(path), { credentials: 'same-origin', cache: 'no-store', ...options })
   if (!response.ok) {
+    if (response.status === 401) throw new Error('Phiên admin đã hết hạn; đăng nhập lại để tiếp tục.')
+    if (response.status === 403) throw new Error('Quyền truy cập hoặc CSRF không hợp lệ.')
     let detail = `HTTP ${response.status}`
     try {
       const payload = await response.json() as { detail?: string; message?: string; error?: string }
@@ -51,11 +54,12 @@ async function request(path: string, options?: RequestInit): Promise<Response> {
   return response
 }
 
-function postOptions(query: ReportQuery): RequestInit {
+async function postOptions(query: ReportQuery): Promise<RequestInit> {
   return {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      ...(await csrfHeader()),
     },
     body: JSON.stringify(query),
   }
@@ -66,12 +70,12 @@ export async function listReports(): Promise<ReportDefinition[]> {
 }
 
 export async function runReport(code: string, query: ReportQuery): Promise<ReportResult> {
-  return (await request(`/api/reports/${encodeURIComponent(code)}/run`, postOptions(query)))
+  return (await request(`/api/reports/${encodeURIComponent(code)}/run`, await postOptions(query)))
     .json() as Promise<ReportResult>
 }
 
 export async function exportReport(code: string, query: ReportQuery): Promise<void> {
-  const response = await request(`/api/reports/${encodeURIComponent(code)}/excel`, postOptions(query))
+  const response = await request(`/api/reports/${encodeURIComponent(code)}/excel`, await postOptions(query))
   const blob = await response.blob()
   const url = URL.createObjectURL(blob)
   try {

@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Pottel Security Check</title>
+<style>
+body{font:15px system-ui;max-width:700px;margin:40px auto;padding:18px}
+button,a{font:inherit;padding:10px;margin-right:12px}
+pre{background:#f3f4f6;padding:20px;border-radius:10px;line-height:1.8}
+</style>
+</head>
+<body>
+<h2>Pottel — Kiểm tra CSRF sau đăng nhập</h2>
+<p>Đăng nhập admin ở tab khác trước, rồi quay lại nhấn kiểm tra.</p>
+<a href="/login" target="_blank">Mở trang đăng nhập</a>
+<button id="go">Kiểm tra</button>
+<button id="copy">Sao chép kết quả</button>
+<pre id="result">Chưa kiểm tra.</pre>
+<script>
+const out = document.getElementById('result');
+const req = (url, opts = {}) =>
+  fetch(url, { credentials:'same-origin', cache:'no-store', ...opts });
+
+document.getElementById('go').onclick = async () => {
+  const lines = [];
+  const add = s => { lines.push(s); out.textContent = lines.join('\n'); };
+
+  try {
+    const me = await req('/api/auth/me');
+    add('Admin session: HTTP ' + me.status);
+
+    const catalog = await req('/api/reports');
+    add('Report catalog: HTTP ' + catalog.status);
+
+    const r = await req('/api/auth/csrf');
+    add('CSRF endpoint: HTTP ' + r.status);
+
+    if (!r.ok) return;
+
+    const csrf = await r.json();
+    const part = document.cookie.split(';').map(s => s.trim())
+      .find(s => s.startsWith('XSRF-TOKEN='));
+
+    const cookie = part
+      ? decodeURIComponent(part.substring('XSRF-TOKEN='.length))
+      : '';
+
+    add('CSRF cookie exists: ' + Boolean(cookie));
+    add('CSRF response token exists: ' + Boolean(csrf.token));
+    add('CSRF token matches cookie: ' +
+      Boolean(cookie && cookie === csrf.token));
+
+    if (!csrf.token || !csrf.headerName) return;
+
+    const post = await req('/api/reports/I.1/run', {
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        [csrf.headerName]:csrf.token
+      },
+      body:JSON.stringify({
+        month:'INVALID-MONTH',
+        agencyId:null,
+        page:1,
+        pageSize:1
+      })
+    });
+
+    add('Authenticated POST: HTTP ' + post.status);
+
+    const after = await req('/api/auth/me');
+    add('Session after POST: HTTP ' + after.status);
+    add('Test used invalid month; no valid report requested.');
+  }
+  catch(e) {
+    add('Diagnostic exception: ' + e.name);
+  }
+};
+
+document.getElementById('copy').onclick = async () => {
+  await navigator.clipboard.writeText(out.textContent);
+  document.getElementById('copy').textContent = 'Đã sao chép';
+};
+</script>
+</body>
+</html>

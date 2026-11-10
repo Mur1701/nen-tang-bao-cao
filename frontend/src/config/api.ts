@@ -1,12 +1,11 @@
-const configuredBaseUrl =
-  (import.meta.env.VITE_API_BASE_URL ?? '').trim()
-
-const baseUrl = configuredBaseUrl.replace(/\/+$/, '')
-
 /**
- * Local: use Vite proxy when VITE_API_BASE_URL is empty.
- * Production: use the configured HTTPS backend origin.
+ * Authentication uses same-origin session + CSRF cookies.
+ * Never call a cross-origin Render URL directly from the browser:
+ * - Local development: Vite proxies /api to 127.0.0.1:8081.
+ * - Vercel: vercel.json rewrites /api/* to the Render backend.
+ * Ignore legacy VITE_API_BASE_URL to avoid cross-origin credential failures.
  */
 export function apiUrl(path: string): string {
-  return `${baseUrl}${path}`
+  if (!path.startsWith('/api/')) throw new Error('Only same-origin API endpoints are allowed')
+  return path
 }

@@ -1,4 +1,4 @@
-import { MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+import { LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
 import { Breadcrumb, Button, Layout, Select, Space, Tag, Typography } from 'antd'
 import { REPORT_NAVIGATION, type ReportNavigationItem } from '../../features/reports/reportNavigation'
 
@@ -10,10 +10,12 @@ interface Props {
   collapsed: boolean
   onToggle: () => void
   onNavigate: (path: string) => void
+  adminUsername: string
+  onLogout: () => void
 }
 
-/** Common header for dashboard and every report; never owns report data. */
-export default function AppHeader({ current, collapsed, onToggle, onNavigate }: Props) {
+/** Common header for dashboard and all 12 reports; never owns report data. */
+export default function AppHeader({ current, collapsed, onToggle, onNavigate, adminUsername, onLogout }: Props) {
   const selectedGroup = current?.group === 'REVENUE' ? 'Doanh thu' : 'Chi phí'
 
   return (
@@ -46,7 +48,8 @@ export default function AppHeader({ current, collapsed, onToggle, onNavigate }: 
           options={REPORT_NAVIGATION.map(r => ({ label: `${r.code} — ${r.title}`, value: r.path }))}
           onChange={path => { if (path) onNavigate(path) }}
         />
-        <Tag>Phase 1</Tag>
+        <Tag>Admin: {adminUsername}</Tag>
+        <Button icon={<LogoutOutlined />} onClick={onLogout}>Đăng xuất</Button>
       </Space>
     </Header>
   )
