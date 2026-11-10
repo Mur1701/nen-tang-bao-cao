@@ -1,5 +1,5 @@
 import { Alert, Card, Empty, Typography } from 'antd'
-import type { RevenueTrend, RevenueTrendPoint } from './reportApi'
+import type { RevenueTrend } from './reportApi'
 import { formatReportMonth, formatViNumber } from './reportFormat'
 
 const { Text } = Typography
