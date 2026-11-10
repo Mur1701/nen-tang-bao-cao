@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined } from '@ant-design/icons'
+import { LogoutOutlined, MenuFoldOutlined, MenuUnfoldOutlined, SearchOutlined } from '@ant-design/icons'
 import { Breadcrumb, Button, Input, Layout, Space, Tag, Typography } from 'antd'
 import { REPORT_NAVIGATION, type ReportNavigationItem } from '../../features/reports/reportNavigation'
 import { normalizeSearch } from '../../features/reports/reportFormat'
@@ -54,14 +54,14 @@ export default function AppHeader({ current, collapsed, onToggle, onNavigate, ad
       </Space>
       <Space className="app-header-actions">
         <div className="app-report-search">
-          <Input.Search
+          <Input
+            prefix={<SearchOutlined />}
             aria-label="Tìm báo cáo bằng Enter"
             placeholder="Tìm mã hoặc tên báo cáo"
             value={keyword}
             allowClear
-            enterButton="Tìm"
             onChange={e => { setKeyword(e.target.value); setMatches(null) }}
-            onSearch={searchReports}
+            onPressEnter={() => searchReports(keyword)}
           />
           {matches !== null && (
             <div className="app-report-search-results" role="status">
