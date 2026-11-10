@@ -8,7 +8,7 @@ import java.util.NoSuchElementException;
 @Component
 public class ReportCatalog {
     private static final List<ReportDefinition> REPORTS = List.of(
-        new ReportDefinition("I.1", "Khuyến khích theo sản lượng", "COST", "MONTH", "PREVIEW", "Mới hỗ trợ xem trước số KIT kích hoạt; chưa tính tiền khuyến khích hoặc VAT."),
+        new ReportDefinition("I.1", "Khuyến khích theo sản lượng", "COST", "MONTH", "IMPLEMENTING", "Đã nối Stored Function chính thức; chưa mở chạy cho tới khi xác minh nguồn active/giá."),
         new ReportDefinition("I.2", "Chi tiết thuê bao khuyến khích theo sản lượng", "COST", "TBD", "PLANNED", "Bộ lọc chi tiết chưa xác nhận."),
         new ReportDefinition("I.3", "Phân bổ chi phí thuê bao", "COST", "MONTH", "PLANNED", ""),
         new ReportDefinition("I.4", "Chi tiết thuê bao chưa phân bổ chi phí trong kỳ", "COST", "MONTH", "PLANNED", ""),
