@@ -23,7 +23,7 @@ class ReportServiceOfficialI1Test {
 
     @Test
     void disabledOfficialReportFailsClosedWithoutDatabaseAccess() {
-        var service = new ReportService(catalog, repo, false);
+        var service = new ReportService(catalog, repo, false, false, false);
         var error = assertThrows(ResponseStatusException.class,
                 () -> service.run("I.1", query()));
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, error.getStatusCode());
@@ -32,7 +32,7 @@ class ReportServiceOfficialI1Test {
 
     @Test
     void otherReportCodesRemainUnimplemented() {
-        var service = new ReportService(catalog, repo, true);
+        var service = new ReportService(catalog, repo, true, false, false);
         var error = assertThrows(ResponseStatusException.class,
                 () -> service.run("I.2", query()));
         assertEquals(HttpStatus.NOT_IMPLEMENTED, error.getStatusCode());
@@ -40,12 +40,35 @@ class ReportServiceOfficialI1Test {
     }
 
     @Test
-    void oldKitPreviewModeIsRejected() {
-        var service = new ReportService(catalog, repo, true);
+    void kitPreviewRemainsDisabledByDefault() {
+        var service = new ReportService(catalog, repo, false, false, false);
         var oldQuery = new ReportQuery("2026-10", null, 1, 50, "AGENCY_KITS");
         var error = assertThrows(ResponseStatusException.class,
                 () -> service.run("I.1", oldQuery));
-        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, error.getStatusCode());
+        verifyNoInteractions(repo);
+    }
+
+    @Test
+    void kitPreviewWorksWithoutEnablingOfficialFinancialReport() {
+        when(repo.countI1KitPreview(MONTH, null)).thenReturn(1L);
+        when(repo.i1KitPreview(MONTH, null, 50, 0L))
+                .thenReturn(List.of(Map.of("agency_id", 29, "agency_name", "Đại lý", "activated_kit_count", 1373L)));
+        var service = new ReportService(catalog, repo, false, true, false);
+        var result = service.run("I.1", new ReportQuery("2026-10", null, 1, 50, "AGENCY_KITS"));
+        assertTrue(result.preview());
+        assertEquals(3, result.columns().size());
+        assertEquals(1L, result.totalRows());
+        verify(repo).i1KitPreview(MONTH, null, 50, 0L);
+        verify(repo, never()).i1(any(), any(), anyInt(), anyLong());
+    }
+
+    @Test
+    void packageKitPreviewNeedsSecondExplicitGate() {
+        var service = new ReportService(catalog, repo, false, true, false);
+        var error = assertThrows(ResponseStatusException.class,
+                () -> service.run("I.1", new ReportQuery("2026-10", null, 1, 50, "PACKAGE_KITS")));
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, error.getStatusCode());
         verifyNoInteractions(repo);
     }
 
@@ -58,7 +81,7 @@ class ReportServiceOfficialI1Test {
                 "package_code", "DL5",
                 "package_active_count", 1001L
         )));
-        var result = new ReportService(catalog, repo, true).run("I.1", query());
+        var result = new ReportService(catalog, repo, true, false, false).run("I.1", query());
         assertFalse(result.preview());
         assertEquals(11, result.columns().size());
         assertEquals(1L, result.totalRows());
@@ -72,7 +95,7 @@ class ReportServiceOfficialI1Test {
     void excelUsesAllRowsAndIgnoresCurrentPage() {
         when(repo.countI1(MONTH, null)).thenReturn(35L);
         when(repo.i1(MONTH, null, 35, 0L)).thenReturn(List.of());
-        var result = new ReportService(catalog, repo, true).exportData(
+        var result = new ReportService(catalog, repo, true, false, false).exportData(
                 "I.1", new ReportQuery("2026-10", null, 2, 20, null));
         assertEquals(35L, result.totalRows());
         verify(repo).i1(MONTH, null, 35, 0L);
@@ -82,7 +105,7 @@ class ReportServiceOfficialI1Test {
     void oversizedExportRejectsRatherThanTruncatingSilently() {
         when(repo.countI1(MONTH, null)).thenReturn(5001L);
         var error = assertThrows(ResponseStatusException.class,
-                () -> new ReportService(catalog, repo, true).exportData("I.1", query()));
+                () -> new ReportService(catalog, repo, true, false, false).exportData("I.1", query()));
         assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, error.getStatusCode());
         verify(repo, never()).i1(any(), any(), anyInt(), anyLong());
     }
