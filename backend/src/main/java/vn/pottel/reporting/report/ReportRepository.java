@@ -68,8 +68,14 @@ public class ReportRepository {
     }
 
 
-    private static final String REFERENCE_FROM =
-            " FROM reporting.fn_phase1_reference_rows(:code, :monthStart, :agencyId) ";
+    private static String referenceFrom(String code) {
+        if ("I.1".equalsIgnoreCase(code))
+            return " FROM reporting.fn_phase1_reference_rows(:code, :monthStart, :agencyId) ";
+        // Only server-owned names in this fixed allowlist reach SQL. The client
+        // cannot select an arbitrary schema, function or SQL identifier.
+        var target = ReportFunctionRegistry.require(code);
+        return " FROM " + target.qualifiedFunction() + "(:monthStart, :agencyId) ";
+    }
 
     private MapSqlParameterSource referenceArgs(String code, LocalDate monthStart, Integer agencyId) {
         return args(monthStart, agencyId).addValue("code", code);
@@ -77,7 +83,7 @@ public class ReportRepository {
 
     public long countReference(String code, LocalDate monthStart, Integer agencyId) {
         Long total = jdbc.queryForObject(
-                "SELECT count(*)" + REFERENCE_FROM,
+                "SELECT count(*)" + referenceFrom(code),
                 referenceArgs(code, monthStart, agencyId), Long.class);
         return total == null ? 0L : total;
     }
@@ -91,7 +97,7 @@ public class ReportRepository {
                                       int limit, long offset) {
         var params = referenceArgs(code, monthStart, agencyId)
                 .addValue("limit", limit).addValue("offset", offset);
-        return jdbc.queryForList("SELECT row_data::text" + REFERENCE_FROM
+        return jdbc.queryForList("SELECT row_data::text" + referenceFrom(code)
                 + " ORDER BY row_data->>'agency_name', row_data->>'msisdn', "
                 + "row_data->>'package_code' LIMIT :limit OFFSET :offset",
                 params, String.class);
