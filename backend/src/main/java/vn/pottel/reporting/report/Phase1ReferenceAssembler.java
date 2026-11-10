@@ -52,7 +52,7 @@ public final class Phase1ReferenceAssembler {
             for (var group : schema.dynamicGroups()) {
                 var dates = dateGroups.path(group.key());
                 if (!dates.isObject()) continue;
-                dates.fieldNames().forEachRemaining(day -> {
+                dates.propertyNames().forEach(day -> {
                     dayKeys.get(group.key()).add(day);
                     var money = dates.path(day);
                     for (var key : MEASURES) {
