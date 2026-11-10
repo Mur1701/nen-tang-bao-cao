@@ -6,7 +6,7 @@ Quy tắc source mới: `database/reports/I1.sql` ... `database/reports/II5.sql`
 
 **Tại sao không thêm ngay SQL tính toán?** Phase 1/SRS/LLD vẫn để mở nguồn dữ liệu vật lý của I.2–II.5, điều kiện thuê bao, chi trả hoa hồng, lịch phân bổ, giá lịch sử và VAT. Tự viết công thức sẽ tạo ra số tiền không có căn cứ. Cấu trúc file đã sẵn sàng để bổ sung hàm khi những quyết định đó được xác nhận.
 
-**Nguồn:** `docs.zip` bản 04/11/2026: `SRS_I1..II5.md`, `LLD_REPORT_I1..II5.md`, `DECISION_REGISTER.md`, `REPORT_LIST.md`; handover 06/11. DB-I1 local đã PASS KIT 4.136 / 6 đại lý, 17 cặp đại lý × mã gói, API/Excel preview PASS (09/11); không tái chạy.
+**Nguồn:** `docs.zip` bản 04/11/2026: `SRS_I1..II5.md`, `LLD_REPORT_I1..II5.md`, `REPORT_LIST.md`; handover 06/11. DB-I1 local đã PASS KIT 4.136 / 6 đại lý, 17 cặp đại lý × mã gói, API/Excel preview PASS (09/11); không tái chạy.
 
 ## Danh sách 12 báo cáo
 
