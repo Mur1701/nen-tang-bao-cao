@@ -17,7 +17,7 @@ export async function csrfHeader(): Promise<Record<string, string>> {
     credentials: 'same-origin', cache: 'no-store',
   }))
   const csrf = await response.json() as CsrfResponse
-  if (!csrf.token || csrf.headerName !== 'X-XSRF-TOKEN') {
+  if (!csrf.token || !['X-XSRF-TOKEN', 'X-CSRF-TOKEN'].includes(csrf.headerName)) {
     throw new Error('Không nhận được mã xác thực CSRF.')
   }
   return { [csrf.headerName]: csrf.token }
