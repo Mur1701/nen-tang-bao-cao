@@ -37,6 +37,7 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
   const [error, setError] = useState<string | null>(null)
   const [trend, setTrend] = useState<RevenueTrend | null>(null)
   const [trendVisible, setTrendVisible] = useState(false)
+  const [showDetails, setShowDetails] = useState(!selectedCode.startsWith('II.'))
   const [trendLoading, setTrendLoading] = useState(false)
   const [trendError, setTrendError] = useState<string | null>(null)
   const trendRequest = useRef(0)
@@ -53,6 +54,7 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
     trendRequest.current += 1
     setTrend(null)
     setTrendVisible(false)
+    setShowDetails(!selectedCode.startsWith('II.'))
     setTrendError(null)
     setTrendLoading(false)
     setError(null)
@@ -136,6 +138,23 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
         setResult(data)
         setAppliedQuery(input)
         setHiddenColumns([])
+        if (selectedCode.startsWith('II.')) {
+          const trendVersion = ++trendRequest.current
+          setTrendLoading(true)
+          void loadRevenueTrend(selectedCode, input)
+            .then(items => {
+              if (trendVersion === trendRequest.current) {
+                setTrend(items)
+                setTrendVisible(true)
+              }
+            })
+            .catch(err => {
+              if (trendVersion === trendRequest.current) setTrendError((err as Error).message)
+            })
+            .finally(() => {
+              if (trendVersion === trendRequest.current) setTrendLoading(false)
+            })
+        }
       }
     } catch (e) {
       if (version === requestVersion.current) setError((e as Error).message)
@@ -172,6 +191,11 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
 
   const invalidateResult = () => {
     requestVersion.current += 1
+    trendRequest.current += 1
+    setTrendVisible(false)
+    setTrendLoading(false)
+    setTrend(null)
+    setTrendError(null)
     setLoading(false)
     setResult(null)
     setAppliedQuery(null)
@@ -182,6 +206,12 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
 
   const reset = () => {
     requestVersion.current += 1
+    trendRequest.current += 1
+    setTrendVisible(false)
+    setTrendLoading(false)
+    setTrend(null)
+    setTrendError(null)
+    setShowDetails(!selectedCode.startsWith('II.'))
     setLoading(false)
     setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'LEGACY_REFERENCE' : undefined })
     setResult(null)
@@ -296,6 +326,12 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
               {trendVisible && trend && <RevenueTrendChart trend={trend} />}
             </div>
           )}
+          {selectedCode.startsWith('II.') && (
+            <Button className="report-detail-toggle" onClick={() => setShowDetails(v => !v)}>
+              {showDetails ? 'Ẩn bảng số liệu' : 'Xem bảng số liệu chi tiết'}
+            </Button>
+          )}
+          {showDetails && <>
           <div className="report-table-toolbar">
             <Input
               prefix={<SearchOutlined />}
@@ -356,6 +392,7 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
               onChange: page => { void run({ page }) },
             }}
           />
+          </>}
         </Card>
       )}
     </div>
