@@ -56,6 +56,7 @@ jobs:
           docker exec -i ${{ job.services.pg.id }} psql -X -v ON_ERROR_STOP=1 -U postgres -d phase1_smoke < database/reports/00_PHASE1_REFERENCE_CORE.sql
           docker exec -i ${{ job.services.pg.id }} psql -X -v ON_ERROR_STOP=1 -U postgres -d phase1_smoke < database/reports/00B_PHASE1_PAYMENT_SOURCE.sql
           docker exec -i ${{ job.services.pg.id }} psql -X -v ON_ERROR_STOP=1 -U postgres -d phase1_smoke < database/reports/01_PHASE1_LEGACY_REPORTS.sql
+          docker exec -i ${{ job.services.pg.id }} psql -X -v ON_ERROR_STOP=1 -U postgres -d phase1_smoke < database/reports/02_PHASE1_ENTRYPOINTS.sql
       - name: Verify twelve reports on fake data
         run: |
           docker exec -i ${{ job.services.pg.id }} psql -X -v ON_ERROR_STOP=1 -U postgres -d phase1_smoke < database/reports/tests/LEGACY_REFERENCE_SMOKE_ASSERT.sql
