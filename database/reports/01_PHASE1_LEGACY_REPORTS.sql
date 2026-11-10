@@ -28,6 +28,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 )
  SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.package_code), 'agency_id',s.agency_id, 'agency_name',s.agency_name, 'package_code',s.package_code, 'package_price',max(s.package_price), 'package_active_count',count(*), 'agency_total_active',max(m.cnt), 'achieved_tier',((CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END)*100)::text||'%', 'incentive_before_vat',round(sum(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END)),2), 'vat_amount',round(round(sum(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END)),2)*.08::numeric,2), 'incentive_total',round(sum(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END)),2)+round(round(sum(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END)),2)*.08::numeric,2), 'missing_price',count(*) FILTER (WHERE s.package_price IS NULL), '_basis','LEGACY_REFERENCE')
  FROM s JOIN monthly m ON m.agency_id=s.agency_id
@@ -44,6 +46,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 )
  SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'agency_name',s.agency_name, 'msisdn',s.msisdn, 'subscriber_active_at',s.subscriber_active_at, 'package_code',s.package_code, 'package_price',s.package_price, 'tier',((CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END)*100)::text||'%', 'incentive_net',round(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END),2), 'vat_amount',round(round(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END),2)*.08::numeric,2), 'incentive_total',round(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END),2)+round(round(s.package_price*(CASE WHEN m.cnt<=1000 THEN 0::numeric WHEN m.cnt<=2000 THEN .05::numeric ELSE .1::numeric END),2)*.08::numeric,2), '_basis','LEGACY_REFERENCE')
  FROM s JOIN monthly m ON m.agency_id=s.agency_id
@@ -59,6 +63,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), daily AS (
  SELECT d.kit_id,
  coalesce(jsonb_object_agg(d.allocation_date::text,
@@ -71,8 +77,8 @@ monthly AS (
  count(*) FILTER (WHERE d.allocation_date>=(p_month + INTERVAL '1 month')::date AND d.allocation_date<(p_month + INTERVAL '2 month')::date) AS next_count
  FROM d GROUP BY d.kit_id
 )
- SELECT jsonb_build_object('msisdn',s.msisdn, 'package_code',s.package_code, 'package_registered_at',s.subscriber_active_date, 'payment_at',NULL::date, 'payment_amount_first',NULL::numeric, 'payment_amount_second',NULL::numeric, 'package_active_at',s.package_active_date, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, 'day_groups',jsonb_build_object('current',a.current_days,'next',a.next_days), '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
- FROM s JOIN daily a ON a.kit_id=s.kit_id
+ SELECT jsonb_build_object('msisdn',s.msisdn, 'package_code',s.package_code, 'package_registered_at',s.subscriber_active_date, 'payment_at',p.payment_at, 'payment_amount_first',p.paid_1, 'payment_amount_second',p.paid_2, 'package_active_at',s.package_active_date, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, 'day_groups',jsonb_build_object('current',a.current_days,'next',a.next_days), '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
+ FROM s LEFT JOIN payment p ON p.kit_id=s.kit_id JOIN daily a ON a.kit_id=s.kit_id
  WHERE a.current_count>0 OR a.next_count>0
  ORDER BY s.agency_id,s.msisdn,s.kit_id;
  RETURN; END IF;
@@ -85,9 +91,11 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 )
- SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'msisdn',s.msisdn, 'package_code',s.package_code, 'package_registered_at',s.subscriber_active_date, 'payment_at',NULL::date, 'payment_amount_first',NULL::numeric, 'payment_amount_second',NULL::numeric, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
- FROM s 
+ SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'msisdn',s.msisdn, 'package_code',s.package_code, 'package_registered_at',s.subscriber_active_date, 'payment_at',p.payment_at, 'payment_amount_first',p.paid_1, 'payment_amount_second',p.paid_2, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
+ FROM s LEFT JOIN payment p ON p.kit_id=s.kit_id 
  WHERE s.subscriber_active_date<(p_month + INTERVAL '1 month')::date AND (s.package_active_date IS NULL OR s.package_active_date>=(p_month + INTERVAL '1 month')::date)
  ORDER BY s.agency_id,s.msisdn,s.kit_id;
  RETURN; END IF;
@@ -100,6 +108,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), daily AS (
  SELECT d.kit_id,
  coalesce(jsonb_object_agg(d.allocation_date::text,
@@ -112,8 +122,8 @@ monthly AS (
  count(*) FILTER (WHERE d.allocation_date>=(p_month + INTERVAL '1 month')::date AND d.allocation_date<(p_month + INTERVAL '2 month')::date) AS next_count
  FROM d GROUP BY d.kit_id
 )
- SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'msisdn',s.msisdn, 'package_code',s.package_code, 'subscriber_active_at',s.subscriber_active_at, 'package_active_at',s.package_active_date, 'payment_at',NULL::date, 'payment_amount_first',NULL::numeric, 'payment_amount_second',NULL::numeric, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, 'allocated_days',a.current_count, 'day_groups',jsonb_build_object('current',a.current_days), '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
- FROM s JOIN daily a ON a.kit_id=s.kit_id
+ SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'msisdn',s.msisdn, 'package_code',s.package_code, 'subscriber_active_at',s.subscriber_active_at, 'package_active_at',s.package_active_date, 'payment_at',p.payment_at, 'payment_amount_first',p.paid_1, 'payment_amount_second',p.paid_2, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, 'allocated_days',a.current_count, 'day_groups',jsonb_build_object('current',a.current_days), '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
+ FROM s LEFT JOIN payment p ON p.kit_id=s.kit_id JOIN daily a ON a.kit_id=s.kit_id
  WHERE a.current_count>0
  ORDER BY s.agency_id,s.msisdn,s.kit_id;
  RETURN; END IF;
@@ -126,6 +136,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), daily AS (
  SELECT d.kit_id,
  coalesce(jsonb_object_agg(d.allocation_date::text,
@@ -138,8 +150,8 @@ monthly AS (
  count(*) FILTER (WHERE d.allocation_date>=(p_month + INTERVAL '1 month')::date AND d.allocation_date<(p_month + INTERVAL '2 month')::date) AS next_count
  FROM d GROUP BY d.kit_id
 )
- SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'msisdn',s.msisdn, 'package_code',s.package_code, 'subscriber_active_at',s.subscriber_active_at, 'package_active_at',s.package_active_date, 'payment_first_at',NULL::date, 'payment_amount_first',NULL::numeric, 'payment_amount_second',NULL::numeric, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, 'forward_days',a.next_count, 'day_groups',jsonb_build_object('next',a.next_days), '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
- FROM s JOIN daily a ON a.kit_id=s.kit_id
+ SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'msisdn',s.msisdn, 'package_code',s.package_code, 'subscriber_active_at',s.subscriber_active_at, 'package_active_at',s.package_active_date, 'payment_first_at',p.payment_at, 'payment_amount_first',p.paid_1, 'payment_amount_second',p.paid_2, 'commission_gross',s.commission_gross, 'commission_net',s.commission_net, 'vat_amount',s.commission_vat, 'forward_days',a.next_count, 'day_groups',jsonb_build_object('next',a.next_days), '_basis','LEGACY_REFERENCE', '_payment_status','UNVERIFIED')
+ FROM s LEFT JOIN payment p ON p.kit_id=s.kit_id JOIN daily a ON a.kit_id=s.kit_id
  WHERE a.next_count>0
  ORDER BY s.agency_id,s.msisdn,s.kit_id;
  RETURN; END IF;
@@ -152,6 +164,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), daily AS (
  SELECT d.kit_id,
  coalesce(jsonb_object_agg(d.allocation_date::text,
@@ -178,6 +192,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 )
  SELECT jsonb_build_object('stt',row_number() OVER (ORDER BY s.agency_id,s.msisdn,s.kit_id), 'msisdn',s.msisdn, 'package_code',s.package_code, 'subscriber_active_at',s.subscriber_active_at, 'revenue_gross',s.revenue_gross, 'revenue_net',s.revenue_net, 'vat_amount',s.revenue_vat, '_basis','LEGACY_REFERENCE')
  FROM s 
@@ -193,6 +209,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), daily AS (
  SELECT d.kit_id,
  coalesce(jsonb_object_agg(d.allocation_date::text,
@@ -219,6 +237,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), daily AS (
  SELECT d.kit_id,
  coalesce(jsonb_object_agg(d.allocation_date::text,
@@ -245,6 +265,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), issuance AS (
  SELECT agency_id, min(agency_name)::text AS agency_name,
  sum(commission_net) FILTER (WHERE package_active_date>=p_month AND package_active_date<(p_month + INTERVAL '1 month')::date) AS incurred_net,
@@ -276,6 +298,8 @@ monthly AS (
  SELECT agency_id,COUNT(*) AS cnt FROM reporting.fn_phase1_reference_source(p_month) src
  WHERE src.subscriber_active_date >= p_month AND src.subscriber_active_date < (p_month + INTERVAL '1 month')::date
  GROUP BY agency_id
+), payment AS (
+ SELECT * FROM reporting.fn_phase1_reference_payments(p_month)
 ), issuance AS (
  SELECT agency_id, min(agency_name)::text AS agency_name,
  sum(revenue_net) FILTER (WHERE package_active_date>=p_month AND package_active_date<(p_month + INTERVAL '1 month')::date) AS incurred_net,
