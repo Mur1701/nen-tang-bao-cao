@@ -1,5 +1,6 @@
 package vn.pottel.reporting.security;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +49,8 @@ public class SecurityConfig {
           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(fix -> fix.changeSessionId()))
           .authorizeHttpRequests(auth -> auth
+                // Spring Boot forwards failures to an ERROR dispatch. Keep original HTTP status.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/csrf").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers("/api/reports", "/api/reports/**", "/api/health/db", "/api/auth/me")
