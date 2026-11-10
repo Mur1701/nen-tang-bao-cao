@@ -21,9 +21,10 @@ class Phase1ReportSchemaCatalogTest {
     }
 
     @Test
-    void neverClaimUnverifiedFinancialReportsAreExecutable() {
+    void baselineReportsAreExecutableButNeverMarkedFinanciallyAccepted() {
         for (var schema : schemas.all()) {
-            assertFalse(schema.executable(), schema.code());
+            assertTrue(schema.executable(), schema.code());
+            assertEquals("LEGACY_REFERENCE", schema.status(), schema.code());
             assertFalse(schema.blocker().isBlank(), schema.code());
             assertTrue(schema.source().contains("SRS_"), schema.code());
         }
@@ -73,7 +74,7 @@ class Phase1ReportSchemaCatalogTest {
     void stockSummariesAreNotMisrepresentedAsSubscriberDetails() {
         var costs = schemas.require("I.7");
         var revenue = schemas.require("II.5");
-        assertEquals(12, costs.columns().size());
+        assertEquals(13, costs.columns().size());
         assertEquals(20, revenue.columns().size());
         assertFalse(costs.columns().stream().anyMatch(c -> c.key().equals("msisdn")));
         assertFalse(revenue.columns().stream().anyMatch(c -> c.key().equals("msisdn")));
