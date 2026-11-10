@@ -54,4 +54,31 @@ class I1ExcelExporterTest {
             assertEquals("1234567890123456.78", cell.getStringCellValue());
         }
     }
+    @Test
+    void groupedAllocationHeadersRemainMergedAndDoNotChangeSourceValues() throws Exception {
+        var cols = List.of(
+                new ReportResult.Column("msisdn", "Số thuê bao", "text"),
+                new ReportResult.Column("net", "CP chưa VAT", "decimal",
+                        List.of("Chi phí phân bổ trong kỳ", "01/11/2026")),
+                new ReportResult.Column("vat", "VAT", "decimal",
+                        List.of("Chi phí phân bổ trong kỳ", "01/11/2026")),
+                new ReportResult.Column("gross", "Tổng CP", "decimal",
+                        List.of("Chi phí phân bổ trong kỳ", "01/11/2026"))
+        );
+        var row = Map.<String, Object>of("msisdn", "0084123456",
+                "net", "100.25", "vat", "8.02", "gross", "108.27");
+        var result = new ReportResult("I.3", "Sample", false, "",
+                cols, List.of(row), 1, 50, 1);
+        var bytes = new ReportExcelExporter().toXlsx(result);
+        try (var workbook = WorkbookFactory.create(new ByteArrayInputStream(bytes))) {
+            var sheet = workbook.getSheetAt(0);
+            assertEquals("Chi phí phân bổ trong kỳ", sheet.getRow(0).getCell(1).getStringCellValue());
+            assertEquals("01/11/2026", sheet.getRow(1).getCell(1).getStringCellValue());
+            assertEquals("VAT", sheet.getRow(2).getCell(2).getStringCellValue());
+            assertEquals("0084123456", sheet.getRow(3).getCell(0).getStringCellValue());
+            assertEquals(108.27, sheet.getRow(3).getCell(3).getNumericCellValue(), 0.000001);
+            assertTrue(sheet.getNumMergedRegions() >= 2);
+        }
+    }
+
 }
