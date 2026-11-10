@@ -60,7 +60,9 @@ public class ReportController {
         var bytes = excel.toXlsx(data);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename("pottel-" + code.replace('.', '-') + (data.preview() ? "-KIT-PREVIEW" : "-CHUA-NGHIEM-THU") + ".xlsx", StandardCharsets.UTF_8).build().toString())
+                        .filename("pottel-" + code.replace('.', '-') + (query.previewMode() != null && (query.previewMode().equalsIgnoreCase("AGENCY_KITS")
+                                || query.previewMode().equalsIgnoreCase("PACKAGE_KITS"))
+                                ? "-KIT-PREVIEW" : "-REFERENCE") + ".xlsx", StandardCharsets.UTF_8).build().toString())
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .contentLength(bytes.length).body(bytes);
     }
