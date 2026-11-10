@@ -15,15 +15,12 @@ public class ReportService {
     private final ReportCatalog catalog;
     private final ReportRepository repo;
     private final boolean executionEnabled;
-    private final boolean packagePreviewEnabled;
 
     public ReportService(ReportCatalog catalog, ReportRepository repo,
-                         @Value("${reporting.execution-enabled:false}") boolean executionEnabled,
-                         @Value("${reporting.i1-package-preview-enabled:false}") boolean packagePreviewEnabled) {
+                         @Value("${reporting.execution-enabled:false}") boolean executionEnabled) {
         this.catalog = catalog;
         this.repo = repo;
         this.executionEnabled = executionEnabled;
-        this.packagePreviewEnabled = packagePreviewEnabled;
     }
     private record Normalized(LocalDate monthStart, Integer agencyId, int page, int size) {}
 
@@ -42,7 +39,7 @@ public class ReportService {
         return new Normalized(first, q.agencyId(), page, size);
     }
 
-    private void requirePreview(String code) {
+    private void requireOfficialI1(String code) {
         try { catalog.get(code); }
         catch (java.util.NoSuchElementException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo");
@@ -51,81 +48,49 @@ public class ReportService {
             throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED, "Báo cáo chưa triển khai Stored Function");
         if (!executionEnabled)
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Truy vấn đang khóa: chỉ mở sau khi cài Stored Function và cấu hình RBAC");
+                    "Báo cáo I.1 chính thức chưa được mở: cần nguồn dữ liệu đủ điều kiện và giá đã kiểm chứng");
     }
 
-    private boolean packagePreviewRequested(ReportQuery query) {
-        String mode = query == null ? null : query.previewMode();
-        if (mode == null || mode.isBlank() || "AGENCY_KITS".equalsIgnoreCase(mode)) return false;
-        if (!"PACKAGE_KITS".equalsIgnoreCase(mode))
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "previewMode không hợp lệ");
-        if (!packagePreviewEnabled)
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
-                    "Preview KIT theo gói đang khóa; cần cài function demo và cấu hình bảo vệ API");
-        return true;
+    private void rejectLegacyPreviewMode(ReportQuery query) {
+        if (query != null && query.previewMode() != null && !query.previewMode().isBlank())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Chế độ KIT preview không áp dụng cho báo cáo I.1 chính thức");
     }
 
     public ReportResult run(String code, ReportQuery query) {
-        requirePreview(code);
+        requireOfficialI1(code);
         var q = normalize(query);
-        boolean packageMode = packagePreviewRequested(query);
-        final long total;
-        final List<java.util.Map<String, Object>> rows;
+        rejectLegacyPreviewMode(query);
         try {
-            if (packageMode) {
-                total = repo.countI1Packages(q.monthStart(), q.agencyId());
-                rows = repo.i1Packages(q.monthStart(), q.agencyId(), q.size(), (long) (q.page() - 1) * q.size());
-            } else {
-                total = repo.countI1(q.monthStart(), q.agencyId());
-                rows = repo.i1(q.monthStart(), q.agencyId(), q.size(), (long) (q.page() - 1) * q.size());
-            }
+            long total = repo.countI1(q.monthStart(), q.agencyId());
+            var rows = repo.i1(q.monthStart(), q.agencyId(), q.size(),
+                    (long) (q.page() - 1) * q.size());
+            return new ReportResult("I.1", catalog.get("I.1").title(), false,
+                    "Báo cáo I.1 theo nguồn dữ liệu nghiệp vụ đã được kiểm chứng.",
+                    I1OfficialContract.columns(), rows, q.page(), q.size(), total);
         } catch (DataAccessException e) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Stored Function chưa sẵn sàng hoặc truy vấn thất bại");
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "I.1: Stored Function hoặc nguồn nghiệp vụ chưa sẵn sàng");
         }
-        return new ReportResult("I.1", catalog.get("I.1").title(), true,
-                packageMode
-                    ? "CHỈ KIT KÍCH HOẠT THEO ĐẠI LÝ × GÓI. Không phải số active đủ điều kiện; chưa tính tiền/VAT."
-                    : "SỐ KIT KÍCH HOẠT (xem trước). Chưa phải số thuê bao tính thưởng; chưa tính tiền/VAT.",
-                packageMode ? packageColumns() : columns(), rows, q.page(), q.size(), total);
-    }
-    /** Export the same filters, without page limit. Refuse silent truncation. */
-    public ReportResult exportData(String code, ReportQuery query) {
-        requirePreview(code);
-        var q = normalize(query);
-        boolean packageMode = packagePreviewRequested(query);
-        final long total;
-        final List<java.util.Map<String, Object>> rows;
-        try {
-            total = packageMode ? repo.countI1Packages(q.monthStart(), q.agencyId())
-                                : repo.countI1(q.monthStart(), q.agencyId());
-            if (total > 5000)
-                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Tối đa 5000 dòng Excel; cần cơ chế streaming cho báo cáo lớn");
-            rows = packageMode ? repo.i1Packages(q.monthStart(), q.agencyId(), (int) total + 1, 0)
-                               : repo.i1(q.monthStart(), q.agencyId(), (int) total + 1, 0);
-        } catch (DataAccessException e) {
-            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Stored Function chưa sẵn sàng hoặc truy vấn thất bại");
-        }
-        return new ReportResult("I.1", catalog.get("I.1").title(), true,
-                packageMode
-                    ? "Chỉ thống kê KIT theo mã gói, không phải dữ liệu khuyến khích đã nghiệm thu."
-                    : "Chỉ là thống kê KIT; chưa được dùng để thanh toán/đối soát tiền.",
-                packageMode ? packageColumns() : columns(), rows, 1, rows.size(), total);
     }
 
-    private static List<ReportResult.Column> packageColumns() {
-        return List.of(
-                new ReportResult.Column("agency_id", "ID đại lý", "integer"),
-                new ReportResult.Column("agency_name", "Tên đại lý", "text"),
-                new ReportResult.Column("package_code", "Mã gói", "text"),
-                new ReportResult.Column("activated_kit_count", "KIT kích hoạt theo gói", "integer"),
-                new ReportResult.Column("agency_kit_total", "Tổng KIT đại lý", "integer")
-        );
-    }
-    private static List<ReportResult.Column> columns() {
-        return List.of(
-                new ReportResult.Column("agency_id", "ID đại lý", "integer"),
-                new ReportResult.Column("agency_name", "Tên đại lý", "text"),
-                new ReportResult.Column("activated_kit_count", "KIT kích hoạt", "integer")
-        );
+    /** Full filtered export, never just the currently displayed page. */
+    public ReportResult exportData(String code, ReportQuery query) {
+        requireOfficialI1(code);
+        var q = normalize(query);
+        rejectLegacyPreviewMode(query);
+        try {
+            long total = repo.countI1(q.monthStart(), q.agencyId());
+            if (total > 5000)
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                        "Tối đa 5000 dòng Excel; không xuất file thiếu dòng");
+            var rows = repo.i1(q.monthStart(), q.agencyId(), (int) total, 0);
+            return new ReportResult("I.1", catalog.get("I.1").title(), false,
+                    "Báo cáo I.1 theo nguồn dữ liệu nghiệp vụ đã được kiểm chứng.",
+                    I1OfficialContract.columns(), rows, 1, rows.size(), total);
+        } catch (DataAccessException e) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "I.1: Stored Function hoặc nguồn nghiệp vụ chưa sẵn sàng");
+        }
     }
 }
