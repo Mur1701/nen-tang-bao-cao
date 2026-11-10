@@ -1,5 +1,6 @@
 package vn.pottel.reporting.security;
 
+import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,6 +14,8 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository;
+import org.springframework.security.web.csrf.InvalidCsrfTokenException;
+import org.springframework.security.web.csrf.MissingCsrfTokenException;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import vn.pottel.reporting.auth.AdminLoginThrottle;
 import vn.pottel.reporting.auth.AdminSessionValidationFilter;
@@ -46,6 +49,8 @@ public class SecurityConfig {
           .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED)
                 .sessionFixation(fix -> fix.changeSessionId()))
           .authorizeHttpRequests(auth -> auth
+                // Spring Boot forwards failures to an ERROR dispatch. Keep original HTTP status.
+                .dispatcherTypeMatchers(DispatcherType.ERROR).permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/health", "/api/auth/csrf").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                 .requestMatchers("/api/reports", "/api/reports/**", "/api/health/db", "/api/auth/me")
@@ -82,7 +87,10 @@ public class SecurityConfig {
                 .accessDeniedHandler((request, response, exception) -> {
                     response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-                    response.getWriter().write("{\"error\":\"Access denied or CSRF token invalid\"}");
+                    String reason = exception instanceof MissingCsrfTokenException ? "CSRF_TOKEN_MISSING"
+                            : exception instanceof InvalidCsrfTokenException ? "CSRF_TOKEN_INVALID"
+                            : "ACCESS_DENIED";
+                    response.getWriter().write("{\"error\":\"" + reason + "\"}");
                 }));
         http.addFilterBefore(throttle, UsernamePasswordAuthenticationFilter.class);
         http.addFilterAfter(new AdminSessionValidationFilter(users), UsernamePasswordAuthenticationFilter.class);
