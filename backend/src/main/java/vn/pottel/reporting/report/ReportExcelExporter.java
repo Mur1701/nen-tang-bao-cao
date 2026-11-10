@@ -47,7 +47,7 @@ public class ReportExcelExporter {
                     if (i > 0 && sharesPrefix(result.columns().get(i - 1).groupPath(), path, level))
                         continue;
                     var cell = sheet.getRow(level).createCell(i);
-                    cell.setCellValue(path.get(level));
+                    cell.setCellValue(formatGroupTitle(path.get(level)));
                     cell.setCellStyle(bold);
                     int last = i;
                     while (last + 1 < result.columns().size()
@@ -133,5 +133,17 @@ public class ReportExcelExporter {
         } catch (DateTimeParseException e) {
             return null;
         }
+    }
+
+    private static String formatGroupTitle(String title) {
+        if (title != null && title.matches("[0-9]{4}-[0-9]{2}-[0-9]{2}")) {
+            try {
+                var date = LocalDate.parse(title);
+                return date.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+            } catch (DateTimeParseException ignored) {
+                // Unrecognized label remains unchanged.
+            }
+        }
+        return title;
     }
 }
