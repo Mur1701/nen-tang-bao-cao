@@ -1,8 +1,8 @@
 # Pottel — SQL sources cho 12 báo cáo Phase 1 (09/11/2026)
 
-**Trạng thái: DB SOURCE CATALOG DRAFT / DISCOVERY_ONLY. KHÔNG PHẢI 12 BÁO CÁO ĐÃ CÓ LOGIC TÀI CHÍNH.**
+**Trạng thái: I.1 đã có bản Stored Function chính thức dạng fail-closed, CHƯA CÀI/CHƯA KIỂM CHỨNG nguồn eligible/price. I.2–II.5 vẫn DISCOVERY_ONLY. Không có báo cáo tài chính nào được nghiệm thu.**
 
-Quy tắc source mới: `database/reports/I1.sql` ... `database/reports/II5.sql`, **một file SQL canonical cho mỗi báo cáo**. Mỗi file chứa đầu vào, grain, các cột Phase 1, blockers nghiệp vụ, đề xuất tên Stored Function chính và truy vấn metadata **chỉ đọc** để xác minh nguồn DB. Chạy một file SQL lúc này không tạo Stored Function và không trả kết quả báo cáo tài chính.
+Quy tắc source mới: `database/reports/I1.sql` ... `database/reports/II5.sql`, **một file SQL canonical cho mỗi báo cáo**. I1.sql hiện chứa DDL CREATE FUNCTION cho nhánh phát triển; chỉ review, không tự chạy vào DB. I2.sql–II5.sql còn là truy vấn metadata **chỉ đọc**, không trả kết quả báo cáo tài chính.
 
 **Tại sao không thêm ngay SQL tính toán?** Phase 1/SRS/LLD vẫn để mở nguồn dữ liệu vật lý của I.2–II.5, điều kiện thuê bao, chi trả hoa hồng, lịch phân bổ, giá lịch sử và VAT. Tự viết công thức sẽ tạo ra số tiền không có căn cứ. Cấu trúc file đã sẵn sàng để bổ sung hàm khi những quyết định đó được xác nhận.
 
@@ -12,7 +12,7 @@ Quy tắc source mới: `database/reports/I1.sql` ... `database/reports/II5.sql`
 
 | File canonical | Mã | Stored Function chính dự kiến [PROPOSED] | Trạng thái |
 |---|---|---|---|
-| `database/reports/I1.sql` | I.1 | `reporting.fn_i1_report` | Preview KIT SQL/REST đã PASS local; tài chính TBD |
+| `database/reports/I1.sql` | I.1 | `reporting.fn_i1_report` | Source DDL fail-closed đã viết; nguồn eligible/giá cần đối chiếu, chưa cài DB, chưa PASS tài chính |
 | `database/reports/I2.sql` | I.2 | `reporting.fn_i2_report` | SRS/LLD DRAFT; physical mapping/finance TBD |
 | `database/reports/I3.sql` | I.3 | `reporting.fn_i3_report` | SRS/LLD DRAFT; physical mapping/finance TBD |
 | `database/reports/I4.sql` | I.4 | `reporting.fn_i4_report` | SRS/LLD DRAFT; physical mapping/finance TBD |
@@ -27,7 +27,7 @@ Quy tắc source mới: `database/reports/I1.sql` ... `database/reports/II5.sql`
 
 ## Lưu ý giữ nguyên I.1
 
-GitHub snapshot `c13f2e0` có `database/functions/01_i1_preview.sql`; máy Windows đã áp dụng patch `02_i1_kit_by_package_preview.sql` và cài Stored Function preview mới. Đây là **hai SQL preview lịch sử đã PASS**, không xóa/sửa/ghi đè. `database/reports/I1.sql` là mục canonical chuẩn hóa tài liệu và nơi phát triển SQL tài chính tương lai; **chưa được phép gỡ bản SQL preview cũ**. Khi quyết định tài chính I.1 được chốt, sẽ chuyển phần entrypoint production sang I1.sql và lưu các preview như migration lịch sử, không deploy lặp.
+GitHub snapshot `c13f2e0` có `database/functions/01_i1_preview.sql`; máy Windows đã áp dụng patch `02_i1_kit_by_package_preview.sql` và cài Stored Function preview mới. Đây là **hai SQL preview lịch sử đã PASS**, không xóa/sửa/ghi đè. `database/reports/I1.sql` hiện định nghĩa entrypoint mới, yêu cầu adapter `reporting.v_i1_eligible_activations` cung cấp dữ liệu eligible và giá tính thưởng đã kiểm chứng. Nếu adapter chưa tồn tại, function từ chối chạy. Các function KIT preview cũ được giữ nguyên nhưng Java không còn gọi. Chưa được phép tự cài DDL hoặc gỡ SQL lịch sử. Khi quyết định tài chính I.1 được chốt, sẽ chuyển phần entrypoint production sang I1.sql và lưu các preview như migration lịch sử, không deploy lặp.
 
 ## Cách tích hợp backend sau khi SQL thực sự hoàn chỉnh
 
