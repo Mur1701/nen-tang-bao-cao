@@ -43,7 +43,20 @@ async function request(path: string, options?: RequestInit): Promise<Response> {
   const response = await fetch(apiUrl(path), { credentials: 'same-origin', cache: 'no-store', ...options })
   if (!response.ok) {
     if (response.status === 401) throw new Error('Phiên admin đã hết hạn; đăng nhập lại để tiếp tục.')
-    if (response.status === 403) throw new Error('Quyền truy cập hoặc CSRF không hợp lệ.')
+    if (response.status === 403) {
+      let reason = ''
+      try {
+        const payload = await response.json() as { error?: string }
+        reason = payload.error ?? ''
+      } catch { /* Hide response body from unrecognized endpoints. */ }
+      if (reason === 'CSRF_TOKEN_MISSING')
+        throw new Error('CSRF_TOKEN_MISSING: Yêu cầu POST không có mã CSRF hợp lệ.')
+      if (reason === 'CSRF_TOKEN_INVALID')
+        throw new Error('CSRF_TOKEN_INVALID: Mã CSRF không khớp với phiên hiện tại.')
+      if (reason === 'ACCESS_DENIED')
+        throw new Error('ACCESS_DENIED: Phiên đăng nhập không có quyền truy cập báo cáo.')
+      throw new Error('HTTP 403: Quyền truy cập hoặc CSRF không hợp lệ.')
+    }
     let detail = `HTTP ${response.status}`
     try {
       const payload = await response.json() as { detail?: string; message?: string; error?: string }
