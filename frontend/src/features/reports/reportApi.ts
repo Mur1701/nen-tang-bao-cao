@@ -55,8 +55,14 @@ export interface ReportColumn {
 
 export interface RevenueTrendPoint {
   month: string
-  incurredGross: string | null
-  allocatedGross: string | null
+  primary: string | null
+  secondary: string | null
+}
+export interface RevenueTrend {
+  code: string
+  primaryLabel: string
+  secondaryLabel: string | null
+  points: RevenueTrendPoint[]
 }
 
 export interface ReportResult {
@@ -128,9 +134,10 @@ export async function runReport(code: string, query: ReportQuery): Promise<Repor
     .json() as Promise<ReportResult>
 }
 
-export async function loadRevenueTrend(query: ReportQuery): Promise<RevenueTrendPoint[]> {
-  return (await request('/api/reports/II.5/trend', await postOptions(query)))
-    .json() as Promise<RevenueTrendPoint[]>
+export async function loadRevenueTrend(code: string, query: ReportQuery): Promise<RevenueTrend> {
+  if (!/^II\.[1-5]$/.test(code)) throw new Error('Mã báo cáo doanh thu không hợp lệ')
+  return (await request(`/api/reports/${code}/trend`, await postOptions(query)))
+    .json() as Promise<RevenueTrend>
 }
 
 export async function exportReport(code: string, query: ReportQuery): Promise<void> {
