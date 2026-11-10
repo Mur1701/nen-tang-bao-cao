@@ -1,9 +1,8 @@
 package vn.pottel.reporting.report;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -17,7 +16,7 @@ import java.util.TreeSet;
  * Real per-day groups come from database data; no invented daily allocations.
  */
 public final class Phase1ReferenceAssembler {
-    private static final ObjectMapper JSON = new ObjectMapper();
+    private static final JsonMapper JSON = JsonMapper.builder().build();
     private static final String[] MEASURES = {"net", "vat", "gross"};
     private static final String[] MEASURE_LABELS = {"Chưa VAT", "VAT", "Tổng"};
 
@@ -33,7 +32,7 @@ public final class Phase1ReferenceAssembler {
         for (var payload : payloads) {
             final JsonNode tree;
             try { tree = JSON.readTree(payload); }
-            catch (IOException e) { throw new IllegalArgumentException("Invalid reporting JSON", e); }
+            catch (RuntimeException e) { throw new IllegalArgumentException("Invalid reporting JSON", e); }
             var row = new LinkedHashMap<String, Object>();
             for (var field : schema.columns()) {
                 var val = tree.path(field.key());
