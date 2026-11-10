@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 
 /** One XLSX output contract for all reports; never recalculate financial amounts. */
 @Component
