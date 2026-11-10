@@ -1,18 +1,20 @@
 import { Alert, Card, Empty, Typography } from 'antd'
-import type { RevenueTrendPoint } from './reportApi'
+import type { RevenueTrend, RevenueTrendPoint } from './reportApi'
 import { formatReportMonth, formatViNumber } from './reportFormat'
 
 const { Text } = Typography
 const WIDTH = 720, HEIGHT = 285
 const LEFT = 90, RIGHT = 28, TOP = 28, BOTTOM = 66
-type Series = 'incurredGross' | 'allocatedGross'
-const series: { key: Series; name: string; color: string }[] = [
-  { key: 'incurredGross', name: 'Doanh thu gói phát sinh', color: '#2563eb' },
-  { key: 'allocatedGross', name: 'Doanh thu gói phân bổ', color: '#08916d' },
-]
+type Series = 'primary' | 'secondary'
+const COLORS = ['#2563eb', '#08916d']
 
 /** Visual-only use of JS Number; financial totals remain exact strings from SQL. */
-export default function RevenueTrendChart({ points }: { points: RevenueTrendPoint[] }) {
+export default function RevenueTrendChart({ trend }: { trend: RevenueTrend }) {
+  const points = trend.points
+  const series: { key: Series; name: string; color: string }[] = [
+    { key: 'primary', name: trend.primaryLabel, color: COLORS[0] },
+    ...(trend.secondaryLabel ? [{ key: 'secondary' as const, name: trend.secondaryLabel, color: COLORS[1] }] : []),
+  ]
   const values = points.flatMap(p => series.map(s => p[s.key]))
     .filter((n): n is string => n != null)
     .map(Number).filter(Number.isFinite)
@@ -46,12 +48,12 @@ export default function RevenueTrendChart({ points }: { points: RevenueTrendPoin
   }
 
   return (
-    <Card size="small" title="Xu hướng doanh thu gói trong 6 tháng"
-      extra={<Text type="secondary">Đơn vị: đồng · Tham chiếu BSS</Text>}>
+    <Card size="small" title="Xu hướng doanh thu theo tháng"
+      extra={<Text type="secondary">Đơn vị: đồng</Text>}>
       <Alert type="info" showIcon style={{ marginBottom: 12 }}
         message="Biểu đồ tổng hợp toàn bộ đại lý theo từng tháng, không phụ thuộc phân trang của bảng." />
       <svg viewBox={'0 0 ' + WIDTH + ' ' + HEIGHT} role="img"
-        aria-label="Biểu đồ đường so sánh doanh thu gói phát sinh và doanh thu gói phân bổ theo 6 tháng"
+        aria-label="Biểu đồ xu hướng doanh thu qua sáu tháng"
         style={{ width: '100%', height: 'auto', maxHeight: 350, display: 'block' }}>
         {[0, 1, 2, 3, 4].map(i => {
           const value = low + (high - low) * i / 4
@@ -87,11 +89,11 @@ export default function RevenueTrendChart({ points }: { points: RevenueTrendPoin
         <summary>Đối chiếu số liệu trên biểu đồ</summary>
         <div style={{ overflowX: 'auto', marginTop: 8 }}>
           <table className="revenue-trend-table">
-            <thead><tr><th>Tháng</th><th>Phát sinh</th><th>Phân bổ</th></tr></thead>
+            <thead><tr><th>Tháng</th><th>{trend.primaryLabel}</th>{trend.secondaryLabel && <th>{trend.secondaryLabel}</th>}</tr></thead>
             <tbody>{points.map(p => <tr key={p.month}>
               <td>{formatReportMonth(p.month)}</td>
-              <td>{p.incurredGross == null ? '—' : formatViNumber(p.incurredGross)}</td>
-              <td>{p.allocatedGross == null ? '—' : formatViNumber(p.allocatedGross)}</td>
+              <td>{p.primary == null ? '—' : formatViNumber(p.primary)}</td>
+              {trend.secondaryLabel && <td>{p.secondary == null ? '—' : formatViNumber(p.secondary)}</td>}
             </tr>)}</tbody>
           </table>
         </div>
