@@ -5,6 +5,8 @@ import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.transaction.annotation.Isolation;
+import org.springframework.transaction.annotation.Transactional;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.YearMonth;
@@ -57,6 +59,7 @@ public class ReportService {
                     "Chế độ KIT preview không áp dụng cho báo cáo I.1 chính thức");
     }
 
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public ReportResult run(String code, ReportQuery query) {
         requireOfficialI1(code);
         var q = normalize(query);
@@ -75,6 +78,7 @@ public class ReportService {
     }
 
     /** Full filtered export, never just the currently displayed page. */
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     public ReportResult exportData(String code, ReportQuery query) {
         requireOfficialI1(code);
         var q = normalize(query);
