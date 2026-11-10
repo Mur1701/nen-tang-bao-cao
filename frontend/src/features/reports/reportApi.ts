@@ -50,6 +50,7 @@ export interface ReportColumn {
   key: string
   title: string
   type: string
+  groupPath?: string[]
 }
 
 export interface ReportResult {
