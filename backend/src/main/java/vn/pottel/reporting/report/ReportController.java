@@ -16,17 +16,32 @@ import java.util.NoSuchElementException;
 @RequestMapping("/api/reports")
 public class ReportController {
     private final ReportCatalog catalog;
+    private final Phase1ReportSchemaCatalog schemas;
     private final ReportService service;
     private final ReportExcelExporter excel;
 
-    public ReportController(ReportCatalog catalog, ReportService service, ReportExcelExporter excel) {
+    public ReportController(ReportCatalog catalog, ReportService service, ReportExcelExporter excel,
+                            Phase1ReportSchemaCatalog schemas) {
         this.catalog = catalog;
+        this.schemas = schemas;
         this.service = service;
         this.excel = excel;
     }
 
     @GetMapping
     public List<ReportDefinition> all() { return catalog.all(); }
+
+    /** Documented column/filter/day-group contracts. No BSS queries or financial execution. */
+    @GetMapping("/schemas")
+    public List<Phase1ReportSchemaCatalog.Schema> schemas() { return schemas.all(); }
+
+    @GetMapping("/{code}/schema")
+    public Phase1ReportSchemaCatalog.Schema schema(@PathVariable String code) {
+        try { return schemas.require(code); }
+        catch (NoSuchElementException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo");
+        }
+    }
 
     @GetMapping("/{code}")
     public ReportDefinition get(@PathVariable String code) {
