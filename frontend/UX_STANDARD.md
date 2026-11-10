@@ -45,3 +45,14 @@
 - Dữ liệu BSS local: người phát triển đã xác nhận 12 báo cáo chạy; **chưa có chứng cứ kiểm tra giao diện mới trên local**.
 - Excel: đã có test giữ MSISDN, ngày giờ và nhóm cột; cần kiểm tra nội dung thực trên vài kỳ và đối chiếu với mẫu nghiệp vụ.
 - Những thuật ngữ nghiệp vụ từ SRS như VAT/KIT/MSISDN được bảo lưu. Không dịch thuật ngữ bừa bãi làm mất nghĩa.
+
+
+## Điều chỉnh ngày 10/11/2026 — giảm thao tác và biểu đồ theo mốc tháng
+
+- **I.1 chỉ còn một luồng người dùng:** khi chọn I.1, frontend gửi `previewMode=LEGACY_REFERENCE` mặc định. Không hiện lựa chọn giữa KIT kỹ thuật / baseline BSS / I.1 official chưa mở, tránh HTTP 503 do vô tình chọn chế độ chưa sẵn. Các chế độ KIT/official vẫn được giữ ở backend để phục vụ kiểm thử hoặc đối soát kỹ thuật có kiểm soát.
+- **Giảm nhãn lặp:** bỏ badge `Tham chiếu BSS cũ (chưa nghiệm thu)` lặp trên từng màn hình, thay phần mô tả catalog bằng nội dung nghiệp vụ cụ thể. Giữ một vùng gấp mở `Thông tin nguồn và cách tính` kèm provenance và cảnh báo tài chính khi cần, không xóa trạng thái `REFERENCE` ở API.
+- **Doanh thu ưu tiên biểu đồ:** Sau khi chạy báo cáo II.1–II.5, giao diện tự tải 6 mốc tháng bằng Stored Function tương ứng, hiển thị biểu đồ trước. Bảng chi tiết có thể mở ra bằng `Xem bảng số liệu chi tiết`, không loại bỏ bảng hoặc Excel.
+- **Chỉ số theo từng báo cáo:** II.1 so sánh phân bổ trong kỳ/kỳ sau; II.2 doanh thu chưa phân bổ; II.3 doanh thu phân bổ trong kỳ; II.4 doanh thu chờ phân bổ kỳ sau; II.5 phát sinh/đã phân bổ. Hai series chỉ vẽ khi từng báo cáo thực sự có dữ liệu tương ứng.
+- Biểu đồ được tính từ **toàn bộ dữ liệu trong mỗi tháng**, không từ 50 dòng của React. PostgreSQL smoke test có thêm kiểm thử đủ 6 tháng và ít nhất một mốc có dữ liệu cho từng II.1–II.5 trên fixture.
+- Nguyên tắc xử lý số liệu: giá trị tháng không có bản ghi không được tự biến thành 0; số tiền chính xác dùng JSON text trong API và bảng đối chiếu, `number` chỉ dùng tọa độ SVG.
+- Chưa đưa biểu đồ đa tháng vào file Excel và chưa có đối soát số liệu trực quan BSS local; đây là cải tiến giao diện, không phải nghiệm thu tài chính.
