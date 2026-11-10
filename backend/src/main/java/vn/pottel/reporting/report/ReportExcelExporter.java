@@ -8,6 +8,11 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import org.apache.poi.ss.util.CellRangeAddress;
 
 /** One XLSX output contract for all reports; never recalculate financial amounts. */
@@ -28,6 +33,10 @@ public class ReportExcelExporter {
                     .getFormat("#,##0.################"));
             var integerStyle = workbook.createCellStyle();
             integerStyle.setDataFormat(workbook.createDataFormat().getFormat("#,##0"));
+            var dateStyle = workbook.createCellStyle();
+            dateStyle.setDataFormat(workbook.createDataFormat().getFormat("dd/mm/yyyy"));
+            var datetimeStyle = workbook.createCellStyle();
+            datetimeStyle.setDataFormat(workbook.createDataFormat().getFormat("dd/mm/yyyy hh:mm:ss"));
 
             // Multi-row grouped headers for allocation-day reports.
             // No synthetic dates: groupPath must come from the validated result.
@@ -62,6 +71,14 @@ public class ReportExcelExporter {
                     var value = data.get(col.key());
                     var cell = row.createCell(c);
                     if (value == null) continue;
+                    if ("date".equals(col.type()) || "datetime".equals(col.type())) {
+                        var timestamp = parseDateTime(value.toString());
+                        if (timestamp != null) {
+                            cell.setCellValue(timestamp);
+                            cell.setCellStyle("date".equals(col.type()) ? dateStyle : datetimeStyle);
+                            continue;
+                        }
+                    }
                     if ("decimal".equals(col.type()) || "integer".equals(col.type())) {
                         try {
                             var n = new BigDecimal(value.toString());
@@ -94,5 +111,27 @@ public class ReportExcelExporter {
         for (int i = 0; i <= level; i++)
             if (!previous.get(i).equals(current.get(i))) return false;
         return true;
+    }
+
+    /**
+     * PostgreSQL date, timestamp and ISO 8601 with offset. Offset values
+     * convert to Asia/Ho_Chi_Minh; naive timestamps retain their wall clock.
+     * Invalid input stays text, never becomes an invented Excel date.
+     */
+    private static LocalDateTime parseDateTime(String raw) {
+        try {
+            String normalized = raw.trim().replace(' ', 'T');
+            if (normalized.length() == 10)
+                return LocalDate.parse(normalized).atStartOfDay();
+            if (normalized.endsWith("Z")
+                    || normalized.matches(".*[+-][0-9]{2}:[0-9]{2}$")) {
+                return OffsetDateTime.parse(normalized)
+                        .atZoneSameInstant(ZoneId.of("Asia/Ho_Chi_Minh"))
+                        .toLocalDateTime();
+            }
+            return LocalDateTime.parse(normalized);
+        } catch (DateTimeParseException e) {
+            return null;
+        }
     }
 }
