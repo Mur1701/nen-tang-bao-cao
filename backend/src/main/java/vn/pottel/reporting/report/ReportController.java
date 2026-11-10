@@ -45,7 +45,7 @@ public class ReportController {
         var bytes = excel.toXlsx(data);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
-                        .filename("pottel-" + code.replace('.', '-') + "-preview.xlsx", StandardCharsets.UTF_8).build().toString())
+                        .filename("pottel-" + code.replace('.', '-') + ".xlsx", StandardCharsets.UTF_8).build().toString())
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .contentLength(bytes.length).body(bytes);
     }
