@@ -44,3 +44,26 @@
 - **REPORT-I1:** hợp đồng 11 cột, registry, Stored Function `I1.sql`, đường JDBC/Service/React/Excel và JUnit gate/export tests [COMMITTED; LOCAL TEST NOT YET RUN]. SQL/DB runtime CHƯA PASS; adapter eligible/giá chưa xác định/kiểm chứng; finance không bật, chưa nghiệm thu. 10/11 UI ảnh chụp hiển thị 503 do execution disabled; đã tách preview khỏi finance để không làm mất smoke PASS lịch sử, nhưng bản sửa chưa PASS runtime. Không coi preview KIT là report chính thức.
 - **REPORT-I2–II5:** registry tĩnh [COMMITTED], SQL chỉ khám phá metadata [DISCOVERY_ONLY]; thiếu mapping và business approvals.
 - **DB:** chưa chạy DDL, chưa sửa dữ liệu nguồn.
+
+
+## 10/11/2026 — Phase 1: xây dựng schema/layout dùng chung cho I.2–II.5
+
+**Code đã commit (chưa chạy kiểm thử local cho bản mới):**
+
+- `Phase1ReportSchemaCatalog.java`: metadata cố định cho đủ 12 báo cáo: tháng, đại lý chỉ I.1/I.2; cột cụ thể theo 12 SRS; nhóm cột theo ngày cho I.3/I.5/I.6/II.1/II.3/II.4; cảnh báo blockers SRS; `executable=false` để **không giả trạng thái đã hoàn thành**.
+- `GET /api/reports/schemas` và `GET /api/reports/{code}/schema`: API trả schema/nhóm cột và blockers, chỉ cho admin, không gọi BSS, không thực thi báo cáo.
+- React `ReportBlueprintView` lấy schema qua API cho các báo cáo chưa sẵn và giữ fallback cục bộ để hiển thị cấu trúc; không tạo dữ liệu mẫu hoặc ngày phân bổ giả.
+- `ReportResult.Column.groupPath` là metadata tùy chọn cho nhóm theo ngày ở kết quả khi dữ liệu thật sẵn sàng; `ReportsWorkspace` render nhóm lồng nhau; `ReportExcelExporter` tạo header nhiều tầng/merge khi có `groupPath`; luồng 3 tham số I.1/KIT vẫn tương thích.
+- `Phase1ReportSchemaCatalogTest`: 8 tests cấu trúc metadata (12 mã, filter, cột, nhóm động, gate).
+- `I1ExcelExporterTest`: thêm test header 3 tầng và MSISDN giữ số 0 đầu.
+- `database/reports/PHASE1_SOURCE_DISCOVERY.sql`: metadata audit **READ ONLY** để tìm nguồn ứng viên cho 11 báo cáo, KHÔNG xác nhận nguồn/khóa JOIN và KHÔNG tạo hàm.
+
+**Bảo lưu chưa hoàn thành:**
+
+- SQL I.2–II.5 vẫn `DISCOVERY_ONLY`. Chưa có Stored Functions tính toán đã kiểm chứng, chưa có report run/excel thật; backend tiếp tục 501 và UI tiếp tục `PLANNED`/schema preview.
+- Giá/khuyến khích, nguồn chi trả, chu kỳ, phần dư, VAT và các trường hợp thiếu/trùng còn theo SRS DRAFT. Không được dùng công thức BSS cũ để tự chốt.
+- Không viết database hoặc thay quyền. KIT preview lịch sử I.1 vẫn là **kỹ thuật**; I.1 financial còn chặn.
+- Không có Maven/Vite/PostgreSQL runtime ở môi trường viết code; **TEST CHƯA CHẠY** cho thay đổi mới. Không tự nâng trạng thái PASS.
+- `PROJECT_STATUS.md` trong tài liệu Phase 1: cần đồng bộ tiến độ này khi tài liệu được đưa vào repository/chỉnh sửa nguồn.
+
+**Gate tiếp theo:** local `mvn test` và `npm run build` PASS; chạy discovery metadata SQL ở DB local rồi xác định nguồn vật lý từng report bằng SELECT chỉ đọc; khóa quyết định nghiệp vụ; mới cài Stored Functions và đối chiếu API/Excel trên tập dữ liệu thật.
