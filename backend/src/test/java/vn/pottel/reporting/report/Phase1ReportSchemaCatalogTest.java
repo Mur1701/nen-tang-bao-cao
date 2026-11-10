@@ -48,7 +48,7 @@ class Phase1ReportSchemaCatalogTest {
                     .map(Phase1ReportSchemaCatalog.Column::key).collect(Collectors.toSet()).size(), schema.code());
             for (var column : cols) {
                 assertFalse(column.title().isBlank(), schema.code());
-                assertTrue(Set.of("integer", "text", "decimal", "datetime").contains(column.type()),
+                assertTrue(Set.of("integer", "text", "decimal", "date", "datetime").contains(column.type()),
                         schema.code() + ": " + column.key());
             }
         }
