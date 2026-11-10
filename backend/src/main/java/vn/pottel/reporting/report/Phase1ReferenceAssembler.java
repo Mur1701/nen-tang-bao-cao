@@ -1,6 +1,7 @@
 package vn.pottel.reporting.report;
 
 import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.json.JsonMapper;
 
 import java.util.ArrayList;
@@ -16,7 +17,7 @@ import java.util.TreeSet;
  * Real per-day groups come from database data; no invented daily allocations.
  */
 public final class Phase1ReferenceAssembler {
-    private static final JsonMapper JSON = JsonMapper.builder().build();
+    private static final JsonMapper JSON = JsonMapper.builder().enable(DeserializationFeature.USE_BIG_DECIMAL_FOR_FLOATS).build();
     private static final String[] MEASURES = {"net", "vat", "gross"};
     private static final String[] MEASURE_LABELS = {"Chưa VAT", "VAT", "Tổng"};
 
