@@ -1,3 +1,7 @@
+> **TRẠNG THÁI MỚI NHẤT 10/11/2026 — THAM CHIẾU BSS ĐÃ TRIỂN KHAI, CI PASS:** 12 nhánh report SQL + 11 entrypoint cố định I.2–II.5 + API/JDBC/React/Excel đã được push. CI Maven, Vite và PostgreSQL 18 fixture đều PASS (run 42781888531). Đây là **báo cáo LEGACY_REFERENCE** áp dụng SRS và fallback SQL BSS cũ theo chỉ định của người phát triển; không phải đã nghiệm thu tài chính. Chưa cài/chưa đối chiếu trên DB local. SQL `I2.sql`–`II5.sql` vẫn là hồ sơ DISCOVERY_ONLY lịch sử; bộ SQL chạy thực tế nằm ở `00_PHASE1_REFERENCE_CORE.sql`, `00B_PHASE1_PAYMENT_SOURCE.sql`, `01_PHASE1_LEGACY_REPORTS.sql`, `02_PHASE1_ENTRYPOINTS.sql`.
+>
+> **Đọc `database/reports/REFERENCE_IMPLEMENTATION.md` để xem quy tắc đang dùng.** Các phần bên dưới là nhật ký lịch sử tại thời điểm ghi, không còn là trạng thái source mới nhất.
+
 # Phase 1 — triển khai báo cáo Stored Functions (10/11/2026)
 
 ## Trạng thái và nguồn
