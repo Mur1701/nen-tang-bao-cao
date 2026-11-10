@@ -67,6 +67,42 @@ public class ReportRepository {
                 });
     }
 
+    // Historical technical previews. These counts are KIT, not payable subscribers.
+    // Keep names explicit; financial I.1 remains a distinct stored function.
+    private static final String I1_KIT_FROM =
+            " FROM reporting.fn_i1_activated_kits(:monthStart, :agencyId) ";
+    private static final String I1_KIT_PACKAGE_FROM =
+            " FROM reporting.fn_i1_kit_by_package_preview(:monthStart, :agencyId) ";
+
+    public long countI1KitPreview(LocalDate monthStart, Integer agencyId) {
+        Long count = jdbc.queryForObject("SELECT count(*) " + I1_KIT_FROM,
+                args(monthStart, agencyId), Long.class);
+        return count == null ? 0 : count;
+    }
+
+    public List<Map<String, Object>> i1KitPreview(LocalDate monthStart, Integer agencyId,
+                                                    int limit, long offset) {
+        var params = args(monthStart, agencyId).addValue("limit", limit).addValue("offset", offset);
+        return jdbc.queryForList("SELECT agency_id, agency_name, activated_kit_count "
+                + I1_KIT_FROM + " ORDER BY agency_id LIMIT :limit OFFSET :offset", params);
+    }
+
+    public long countI1PackagePreview(LocalDate monthStart, Integer agencyId) {
+        Long count = jdbc.queryForObject("SELECT count(*) " + I1_KIT_PACKAGE_FROM,
+                args(monthStart, agencyId), Long.class);
+        return count == null ? 0 : count;
+    }
+
+    public List<Map<String, Object>> i1PackagePreview(LocalDate monthStart, Integer agencyId,
+                                                        int limit, long offset) {
+        var params = args(monthStart, agencyId).addValue("limit", limit).addValue("offset", offset);
+        return jdbc.queryForList("SELECT agency_id, agency_name, package_code, "
+                + "activated_kit_count, agency_kit_total "
+                + I1_KIT_PACKAGE_FROM
+                + " ORDER BY agency_id NULLS LAST, package_code NULLS LAST "
+                + "LIMIT :limit OFFSET :offset", params);
+    }
+
     private static String decimal(BigDecimal value) {
         return value == null ? null : value.toPlainString();
     }
