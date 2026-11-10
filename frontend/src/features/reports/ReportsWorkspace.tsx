@@ -10,12 +10,13 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import {
-  exportReport, listReports, runReport,
-  type ReportDefinition, type ReportQuery, type ReportResult,
+  exportReport, listReports, runReport, loadRevenueTrend,
+  type RevenueTrendPoint, type ReportDefinition, type ReportQuery, type ReportResult,
 } from './reportApi'
 import { findReport } from './reportNavigation'
 import { formatGroupHeader, formatReportMonth, formatReportValue, normalizeSearch } from './reportFormat'
 import ReportBlueprintView from './ReportBlueprintView'
+import RevenueTrendChart from './RevenueTrendChart'
 
 const { Title, Text, Paragraph } = Typography
 const currentMonth = () => dayjs().format('YYYY-MM')
@@ -35,6 +36,11 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [trend, setTrend] = useState<RevenueTrendPoint[] | null>(null)
+  const [trendVisible, setTrendVisible] = useState(false)
+  const [trendLoading, setTrendLoading] = useState(false)
+  const [trendError, setTrendError] = useState<string | null>(null)
+  const trendRequest = useRef(0)
   const [searchInput, setSearchInput] = useState('')
   const [quickSearch, setQuickSearch] = useState('')
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([])
@@ -45,12 +51,17 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
     requestVersion.current += 1
     setResult(null)
     setAppliedQuery(null)
+    trendRequest.current += 1
+    setTrend(null)
+    setTrendVisible(false)
+    setTrendError(null)
+    setTrendLoading(false)
     setError(null)
     setLoading(false)
     setSearchInput('')
     setQuickSearch('')
     setHiddenColumns([])
-    setQuery(q => ({ ...q, page: 1, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined }))
+    setQuery(q => ({ ...q, page: 1, agencyId: selectedCode === 'I.1' || selectedCode === 'I.2' ? q.agencyId : null, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined }))
   }, [selectedCode])
 
   useEffect(() => {
@@ -109,6 +120,10 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
     if (!isRunnable) return
     const input = { ...query, ...patch }
     const version = ++requestVersion.current
+    trendRequest.current += 1
+    setTrendVisible(false)
+    setTrend(null)
+    setTrendError(null)
     setLoading(true)
     setError(null)
     setResult(null)
@@ -127,6 +142,23 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
       if (version === requestVersion.current) setError((e as Error).message)
     } finally {
       if (version === requestVersion.current) setLoading(false)
+    }
+  }
+
+  async function toggleTrend() {
+    if (trendVisible) { setTrendVisible(false); return }
+    if (trend) { setTrendVisible(true); return }
+    if (!appliedQuery || selectedCode !== 'II.5') return
+    const version = ++trendRequest.current
+    setTrendLoading(true)
+    setTrendError(null)
+    try {
+      const data = await loadRevenueTrend(appliedQuery)
+      if (version === trendRequest.current) { setTrend(data); setTrendVisible(true) }
+    } catch (e) {
+      if (version === trendRequest.current) setTrendError((e as Error).message)
+    } finally {
+      if (version === trendRequest.current) setTrendLoading(false)
     }
   }
 
@@ -277,6 +309,15 @@ export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
             </Space>
             <Tag>Không tính tổng tài chính ở frontend</Tag>
           </div>
+          {selectedCode === 'II.5' && (
+            <div className="revenue-trend-section">
+              <Button onClick={() => void toggleTrend()} loading={trendLoading}>
+                {trendVisible ? 'Ẩn biểu đồ xu hướng' : 'Xem biểu đồ xu hướng 6 tháng'}
+              </Button>
+              {trendError && <Alert type="warning" showIcon message="Không tải được biểu đồ" description={trendError} style={{ marginTop: 8 }} />}
+              {trendVisible && trend && <RevenueTrendChart points={trend} />}
+            </div>
+          )}
           <div className="report-table-toolbar">
             <Input
               prefix={<SearchOutlined />}
