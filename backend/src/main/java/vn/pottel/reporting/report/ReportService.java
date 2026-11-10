@@ -62,7 +62,7 @@ public class ReportService {
     /** Strictly technical KIT counters, never payable subscribers or financial amounts. */
     private boolean requireKitPreviewMode(String code, ReportQuery query) {
         String mode = query == null ? null : query.previewMode();
-        if (mode == null || mode.isBlank()) return false;
+        if (mode == null || mode.isBlank() || "LEGACY_REFERENCE".equalsIgnoreCase(mode)) return false;
         try { catalog.get(code); }
         catch (java.util.NoSuchElementException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy báo cáo");
