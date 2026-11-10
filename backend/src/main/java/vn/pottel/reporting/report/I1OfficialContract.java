@@ -28,7 +28,7 @@ public final class I1OfficialContract {
             new ReportResult.Column("incentive_total", "Tổng tiền", "decimal"),
             new ReportResult.Column("incentive_before_vat", "Trước VAT", "decimal"),
             new ReportResult.Column("vat_amount", "VAT", "decimal"),
-            new ReportResult.Column("missing_price", "Thiếu giá", "text")
+            new ReportResult.Column("missing_price", "Thiếu giá", "integer")
         );
     }
 }
