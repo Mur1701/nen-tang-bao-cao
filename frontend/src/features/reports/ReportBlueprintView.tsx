@@ -3,7 +3,7 @@ import { Alert, Card, DatePicker, Empty, InputNumber, Space, Table, Tag, Typogra
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import { REPORT_BLUEPRINTS } from './reportBlueprints'
-import { getReportSchema, type ReportSchema, type ReportSchemaColumn } from './reportApi'
+import { getReportSchema, type ReportSchema } from './reportApi'
 
 const { Text, Paragraph } = Typography
 
