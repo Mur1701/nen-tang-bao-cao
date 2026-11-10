@@ -94,7 +94,7 @@ export async function exportReport(code: string, query: ReportQuery): Promise<vo
   try {
     const a = document.createElement('a')
     a.href = url
-    a.download = `pottel-${code.replace('.', '-')}.xlsx`
+    a.download = `pottel-${code.replace('.', '-')}${query.previewMode ? '-KIT-PREVIEW' : '-CHUA-NGHIEM-THU'}.xlsx`
     document.body.appendChild(a)
     a.click()
     a.remove()
