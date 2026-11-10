@@ -60,3 +60,6 @@ jobs:
       - name: Verify twelve reports on fake data
         run: |
           docker exec -i ${{ job.services.pg.id }} psql -X -v ON_ERROR_STOP=1 -U postgres -d phase1_smoke < database/reports/tests/LEGACY_REFERENCE_SMOKE_ASSERT.sql
+      - name: Verify five monthly revenue trends
+        run: |
+          docker exec -i ${{ job.services.pg.id }} psql -X -v ON_ERROR_STOP=1 -U postgres -d phase1_smoke < database/reports/tests/REVENUE_TREND_SMOKE_ASSERT.sql
