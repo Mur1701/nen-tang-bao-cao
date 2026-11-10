@@ -15,7 +15,7 @@
 2. `I1OfficialContract.java`: 11 cột kết quả chính: STT, Tên TĐL, Mã gói, Đơn giá, Số active, Tổng active TĐL, Mức đạt, Tổng tiền, Trước VAT, VAT, Thiếu giá. Grain = đại lý × mã gói (người phát triển đã xác nhận). Chưa có số liệu điền vào.
 3. `OfficialReportContractsTest.java`: kiểm tra registry đóng 12 mã, không cho tên tự do, và thứ tự 11 cột.
 
-**ĐÃ KẾT NỐI** `ReportRepository`/`ReportService` tới `reporting.fn_i1_report`; đã xóa đường chạy preview khỏi Java, giữ function preview lịch sử. `reporting.execution-enabled=false` giữ mặc định. Không bật trước khi adapter, số liệu và SQL thật được kiểm chứng. React I.1 đã dùng status IMPLEMENTING và không gửi previewMode.
+**ĐÃ KẾT NỐI** `ReportRepository`/`ReportService` tới `reporting.fn_i1_report`, với `reporting.execution-enabled=false` mặc định. Đã **khôi phục đường preview KIT kỹ thuật riêng** bằng `reporting.i1-kit-preview-enabled=false` mặc định và `reporting.i1-package-preview-enabled=false`; không yêu cầu mở khóa finance. React I.1 hiển thị lựa chọn rõ ràng giữa KIT preview và tài chính chưa nghiệm thu. Chỉ bật preview local trên môi trường admin tin cậy sau khi xác minh functions cũ còn tồn tại. Không bật tài chính trước khi adapter, số liệu và SQL thật được kiểm chứng.
 
 ## I.1 — những điểm chặn bắt buộc (chưa tự điền)
 
@@ -41,6 +41,6 @@
 ## Kiểm thử / tiến độ cần cập nhật PROJECT_STATUS.md
 
 - **SEC-ADMIN:** local POST I.1 trả HTTP 503 (không còn 403) [USER-VERIFIED], merge PR #1 lên `main` tại `7c1834a`; chưa xác nhận cloud.
-- **REPORT-I1:** hợp đồng 11 cột, registry, Stored Function `I1.sql`, đường JDBC/Service/React và JUnit gate/export tests [COMMITTED; LOCAL TEST NOT YET RUN]. SQL/DB runtime CHƯA PASS; adapter eligible/giá chưa xác định/kiểm chứng; không bật thực thi, chưa nghiệm thu. Preview smoke PASS lịch sử được bảo lưu.
+- **REPORT-I1:** hợp đồng 11 cột, registry, Stored Function `I1.sql`, đường JDBC/Service/React/Excel và JUnit gate/export tests [COMMITTED; LOCAL TEST NOT YET RUN]. SQL/DB runtime CHƯA PASS; adapter eligible/giá chưa xác định/kiểm chứng; finance không bật, chưa nghiệm thu. 10/11 UI ảnh chụp hiển thị 503 do execution disabled; đã tách preview khỏi finance để không làm mất smoke PASS lịch sử, nhưng bản sửa chưa PASS runtime. Không coi preview KIT là report chính thức.
 - **REPORT-I2–II5:** registry tĩnh [COMMITTED], SQL chỉ khám phá metadata [DISCOVERY_ONLY]; thiếu mapping và business approvals.
 - **DB:** chưa chạy DDL, chưa sửa dữ liệu nguồn.
