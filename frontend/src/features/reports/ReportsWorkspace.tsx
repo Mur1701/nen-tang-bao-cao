@@ -13,7 +13,8 @@ import {
   exportReport, listReports, runReport,
   type ReportDefinition, type ReportQuery, type ReportResult,
 } from './reportApi'
-import { REPORT_NAVIGATION, findReport } from './reportNavigation'
+import { findReport } from './reportNavigation'
+import { formatGroupHeader, formatReportMonth, formatReportValue, normalizeSearch } from './reportFormat'
 import ReportBlueprintView from './ReportBlueprintView'
 
 const { Title, Text, Paragraph } = Typography
@@ -23,17 +24,18 @@ const showPackagePreview = import.meta.env.VITE_ENABLE_I1_PACKAGE_PREVIEW === 't
 
 interface WorkspaceProps {
   selectedCode: string
-  onSelectReport: (code: string) => void
 }
 
-export default function ReportsWorkspace({ selectedCode, onSelectReport }: WorkspaceProps) {
+export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
   const [catalog, setCatalog] = useState<ReportDefinition[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
+  const [appliedQuery, setAppliedQuery] = useState<ReportQuery | null>(null)
   const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined })
   const [result, setResult] = useState<ReportResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [searchInput, setSearchInput] = useState('')
   const [quickSearch, setQuickSearch] = useState('')
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([])
   const [tableDensity, setTableDensity] = useState<'small' | 'middle'>('middle')
@@ -42,8 +44,10 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   useEffect(() => {
     requestVersion.current += 1
     setResult(null)
+    setAppliedQuery(null)
     setError(null)
     setLoading(false)
+    setSearchInput('')
     setQuickSearch('')
     setHiddenColumns([])
     setQuery(q => ({ ...q, page: 1, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined }))
@@ -65,27 +69,12 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   const navigation = findReport(selectedCode)
   const definition = catalog.find(r => r.code === selectedCode)
   const isRunnable = definition?.status === 'PREVIEW' || definition?.status === 'IMPLEMENTING' || definition?.status === 'REFERENCE'
-  const groups = useMemo(() => ([
-    {
-      label: 'Chi phí',
-      options: REPORT_NAVIGATION.filter(r => r.group === 'COST').map(r => ({
-        value: r.code, label: `${r.code} — ${catalog.find(d => d.code === r.code)?.title ?? r.title}`,
-      })),
-    },
-    {
-      label: 'Doanh thu',
-      options: REPORT_NAVIGATION.filter(r => r.group === 'REVENUE').map(r => ({
-        value: r.code, label: `${r.code} — ${catalog.find(d => d.code === r.code)?.title ?? r.title}`,
-      })),
-    },
-  ]), [catalog])
-
   const displayedRows = useMemo(() => {
-    const text = quickSearch.trim().toLocaleLowerCase('vi-VN')
+    const text = normalizeSearch(quickSearch)
     const rows = result?.rows ?? []
     if (!text) return rows
     return rows.filter(row => Object.values(row).some(value =>
-      value != null && String(value).toLocaleLowerCase('vi-VN').includes(text)))
+      value != null && normalizeSearch(String(value)).includes(text)))
   }, [quickSearch, result])
 
   const availableColumns = result?.columns ?? []
@@ -96,11 +85,12 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   for (const c of visibleColumns) {
     let target: ColumnsType<Record<string, unknown>> = columns
     for (const title of c.groupPath ?? []) {
-      const existing = target.find(entry => 'children' in entry && entry.title === title)
+      const displayedTitle = formatGroupHeader(title)
+      const existing = target.find(entry => 'children' in entry && entry.title === displayedTitle)
       if (existing && 'children' in existing && existing.children) {
         target = existing.children
       } else {
-        const group = { title, children: [] as ColumnsType<Record<string, unknown>> }
+        const group = { title: displayedTitle, children: [] as ColumnsType<Record<string, unknown>> }
         target.push(group)
         target = group.children
       }
@@ -111,8 +101,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
       title: c.title,
       align: c.type === 'integer' || c.type === 'decimal' ? 'right' : 'left',
       ellipsis: { showTitle: true },
-      render: (value: unknown) => value == null ? <Text type="secondary">—</Text> :
-        c.type === 'integer' && typeof value === 'number' ? formatCount(value) : String(value),
+      render: (value: unknown) => value == null ? <Text type="secondary">—</Text> : formatReportValue(value, c),
     })
   }
 
@@ -123,12 +112,15 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
     setLoading(true)
     setError(null)
     setResult(null)
+    setAppliedQuery(null)
+    setSearchInput('')
     setQuickSearch('')
     try {
       const data = await runReport(selectedCode, input)
       if (version === requestVersion.current) {
         setQuery(input)
         setResult(data)
+        setAppliedQuery(input)
         setHiddenColumns([])
       }
     } catch (e) {
@@ -139,10 +131,10 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   }
 
   async function excel() {
-    if (!result) return
+    if (!result || !appliedQuery) return
     setExporting(true)
     setError(null)
-    try { await exportReport(selectedCode, query) }
+    try { await exportReport(selectedCode, appliedQuery) }
     catch (e) { setError((e as Error).message) }
     finally { setExporting(false) }
   }
@@ -151,7 +143,9 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
     requestVersion.current += 1
     setLoading(false)
     setResult(null)
+    setAppliedQuery(null)
     setError(null)
+    setSearchInput('')
     setQuickSearch('')
   }
 
@@ -160,7 +154,9 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
     setLoading(false)
     setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'AGENCY_KITS' : undefined })
     setResult(null)
+    setAppliedQuery(null)
     setError(null)
+    setSearchInput('')
     setQuickSearch('')
     setHiddenColumns([])
   }
@@ -180,21 +176,6 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
 
       <Card title="Điều kiện báo cáo" className="report-filter-card">
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <div className="report-filter-item">
-            <Text strong>Chọn báo cáo</Text>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              aria-label="Chọn báo cáo"
-              value={selectedCode}
-              options={groups}
-              onChange={code => {
-                requestVersion.current += 1
-                onSelectReport(code)
-              }}
-              style={{ width: '100%', maxWidth: 780 }}
-            />
-          </div>
           {catalogError && <Alert showIcon type="warning" message="Không lấy được danh mục từ backend" description={catalogError} />}
           {isRunnable ? (
             <div className="report-filter-grid">
@@ -203,7 +184,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
                 <DatePicker
                   picker="month"
                   value={dayjs(query.month + '-01')}
-                  format="MM/YYYY"
+                  format="[Tháng] M [năm] YYYY"
                   allowClear={false}
                   onChange={date => {
                     setQuery(q => ({ ...q, month: date ? date.format('YYYY-MM') : currentMonth(), page: 1 }))
@@ -292,19 +273,20 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
             <Space size="large" wrap>
               <div><Text type="secondary">Tổng số dòng</Text><div><Text strong>{formatCount(result.totalRows)}</Text></div></div>
               <div><Text type="secondary">Trang hiện tại</Text><div><Text strong>{result.page}</Text></div></div>
-              <div><Text type="secondary">Kỳ đã chạy</Text><div><Text strong>{query.month}</Text></div></div>
+              <div><Text type="secondary">Kỳ đã chạy</Text><div><Text strong>{formatReportMonth(appliedQuery?.month ?? query.month)}</Text></div></div>
             </Space>
             <Tag>Không tính tổng tài chính ở frontend</Tag>
           </div>
           <div className="report-table-toolbar">
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm trong trang đã tải..."
-              value={quickSearch}
+              placeholder="Nhập từ khóa, nhấn Enter"
+              value={searchInput}
               allowClear
-              onChange={e => setQuickSearch(e.target.value)}
+              onChange={e => { setSearchInput(e.target.value); if (!e.target.value) setQuickSearch('') }}
+              onPressEnter={() => setQuickSearch(searchInput.trim())}
               style={{ width: 255, maxWidth: '100%' }}
-              aria-label="Tìm nhanh trên trang hiện tại"
+              aria-label="Tìm trong trang hiện tại bằng Enter"
             />
             <Popover trigger="click" placement="bottomRight" content={
               <div style={{ width: 250, maxHeight: 300, overflowY: 'auto' }}>
@@ -333,7 +315,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
             />
           </div>
           <Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
-            Tìm nhanh và ẩn cột chỉ ảnh hưởng bảng đang xem; Excel vẫn xuất theo bộ lọc báo cáo, không theo ô tìm nhanh.
+            Nhấn Enter để tìm trong trang đang hiển thị. Excel dùng bộ lọc đã chạy, không bị ảnh hưởng bởi ô tìm kiếm.
             {quickSearch && ` Khớp ${formatCount(displayedRows.length)}/${formatCount(result.rows.length)} dòng trên trang này.`}
           </Paragraph>
           <Table<Record<string, unknown>>
