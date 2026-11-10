@@ -90,15 +90,31 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
 
   const availableColumns = result?.columns ?? []
   const visibleColumns = availableColumns.filter(c => !hiddenColumns.includes(c.key))
-  const columns: ColumnsType<Record<string, unknown>> = visibleColumns.map(c => ({
-    key: c.key,
-    dataIndex: c.key,
-    title: c.title,
-    align: c.type === 'integer' || c.type === 'decimal' ? 'right' : 'left',
-    ellipsis: { showTitle: true },
-    render: (value: unknown) => value == null ? <Text type="secondary">—</Text> :
-      c.type === 'integer' && typeof value === 'number' ? formatCount(value) : String(value),
-  }))
+  // Build grouped headers from the server result contract. I.1's legacy
+  // three-field columns remain unchanged; allocation day groups are metadata-driven.
+  const columns: ColumnsType<Record<string, unknown>> = []
+  for (const c of visibleColumns) {
+    let target: ColumnsType<Record<string, unknown>> = columns
+    for (const title of c.groupPath ?? []) {
+      const existing = target.find(entry => 'children' in entry && entry.title === title)
+      if (existing && 'children' in existing) {
+        target = existing.children
+      } else {
+        const group = { title, children: [] as ColumnsType<Record<string, unknown>> }
+        target.push(group)
+        target = group.children
+      }
+    }
+    target.push({
+      key: c.key,
+      dataIndex: c.key,
+      title: c.title,
+      align: c.type === 'integer' || c.type === 'decimal' ? 'right' : 'left',
+      ellipsis: { showTitle: true },
+      render: (value: unknown) => value == null ? <Text type="secondary">—</Text> :
+        c.type === 'integer' && typeof value === 'number' ? formatCount(value) : String(value),
+    })
+  }
 
   async function run(patch?: Partial<ReportQuery>) {
     if (!isRunnable) return
