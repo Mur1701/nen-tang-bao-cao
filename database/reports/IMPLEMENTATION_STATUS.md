@@ -4,6 +4,10 @@
 
 # Phase 1 — triển khai báo cáo Stored Functions (10/11/2026)
 
+> **UX Phase 1 — 10/11/2026:** Đã cập nhật SPA dùng chung: locale Việt cho DatePicker/Day.js; formatter ngày `dd/MM/yyyy`, ngày giờ `dd/MM/yyyy HH:mm:ss`, số tiền/dấu ngăn cách theo tiếng Việt mà không tính lại; xuất Excel ngày giờ dạng native date; tìm kiếm chỉ khi Enter; bỏ dropdown chọn báo cáo lặp với sidebar; cố định appliedQuery khi xuất Excel. Đã có biểu đồ doanh thu II.5 6 tháng qua API tổng hợp toàn bộ kỳ (`/api/reports/II.5/trend`) chỉ tải khi người dùng chọn, không tổng hợp trên một trang bảng. Tài liệu: `frontend/UX_STANDARD.md`. Kết quả CI sẽ kiểm chứng riêng cho commit này; chưa xác nhận giao diện local qua trình duyệt.
+>
+
+
 ## Trạng thái và nguồn
 
 - **Branch:** `feature/phase1-stored-reports` (tạo từ `main` merge PR #1).
