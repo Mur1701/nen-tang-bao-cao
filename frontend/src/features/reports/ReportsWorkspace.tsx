@@ -10,30 +10,38 @@ import {
 import type { ColumnsType } from 'antd/es/table'
 import dayjs from 'dayjs'
 import {
-  exportReport, listReports, runReport,
-  type ReportDefinition, type ReportQuery, type ReportResult,
+  exportReport, listReports, runReport, loadRevenueTrend,
+  type RevenueTrend, type ReportDefinition, type ReportQuery, type ReportResult,
 } from './reportApi'
-import { REPORT_NAVIGATION, findReport } from './reportNavigation'
+import { findReport } from './reportNavigation'
+import { formatGroupHeader, formatReportMonth, formatReportValue, normalizeSearch } from './reportFormat'
 import ReportBlueprintView from './ReportBlueprintView'
+import RevenueTrendChart from './RevenueTrendChart'
 
 const { Title, Text, Paragraph } = Typography
 const currentMonth = () => dayjs().format('YYYY-MM')
-const showPackagePreview = import.meta.env.VITE_ENABLE_I1_PACKAGE_PREVIEW === 'true'
 const formatCount = (n: number) => n.toLocaleString('vi-VN')
 
 interface WorkspaceProps {
   selectedCode: string
-  onSelectReport: (code: string) => void
 }
 
-export default function ReportsWorkspace({ selectedCode, onSelectReport }: WorkspaceProps) {
+export default function ReportsWorkspace({ selectedCode }: WorkspaceProps) {
   const [catalog, setCatalog] = useState<ReportDefinition[]>([])
   const [catalogError, setCatalogError] = useState<string | null>(null)
-  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: 'AGENCY_KITS' })
+  const [appliedQuery, setAppliedQuery] = useState<ReportQuery | null>(null)
+  const [query, setQuery] = useState<ReportQuery>({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'LEGACY_REFERENCE' : undefined })
   const [result, setResult] = useState<ReportResult | null>(null)
   const [loading, setLoading] = useState(false)
   const [exporting, setExporting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [trend, setTrend] = useState<RevenueTrend | null>(null)
+  const [trendVisible, setTrendVisible] = useState(false)
+  const [showDetails, setShowDetails] = useState(!selectedCode.startsWith('II.'))
+  const [trendLoading, setTrendLoading] = useState(false)
+  const [trendError, setTrendError] = useState<string | null>(null)
+  const trendRequest = useRef(0)
+  const [searchInput, setSearchInput] = useState('')
   const [quickSearch, setQuickSearch] = useState('')
   const [hiddenColumns, setHiddenColumns] = useState<string[]>([])
   const [tableDensity, setTableDensity] = useState<'small' | 'middle'>('middle')
@@ -42,11 +50,19 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
   useEffect(() => {
     requestVersion.current += 1
     setResult(null)
+    setAppliedQuery(null)
+    trendRequest.current += 1
+    setTrend(null)
+    setTrendVisible(false)
+    setShowDetails(!selectedCode.startsWith('II.'))
+    setTrendError(null)
+    setTrendLoading(false)
     setError(null)
     setLoading(false)
+    setSearchInput('')
     setQuickSearch('')
     setHiddenColumns([])
-    setQuery(q => ({ ...q, page: 1 }))
+    setQuery(q => ({ ...q, page: 1, agencyId: selectedCode === 'I.1' || selectedCode === 'I.2' ? q.agencyId : null, previewMode: selectedCode === 'I.1' ? 'LEGACY_REFERENCE' : undefined }))
   }, [selectedCode])
 
   useEffect(() => {
@@ -64,56 +80,81 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
 
   const navigation = findReport(selectedCode)
   const definition = catalog.find(r => r.code === selectedCode)
-  const isPreview = definition?.status === 'PREVIEW'
-  const groups = useMemo(() => ([
-    {
-      label: 'Chi phí',
-      options: REPORT_NAVIGATION.filter(r => r.group === 'COST').map(r => ({
-        value: r.code, label: `${r.code} — ${catalog.find(d => d.code === r.code)?.title ?? r.title}`,
-      })),
-    },
-    {
-      label: 'Doanh thu',
-      options: REPORT_NAVIGATION.filter(r => r.group === 'REVENUE').map(r => ({
-        value: r.code, label: `${r.code} — ${catalog.find(d => d.code === r.code)?.title ?? r.title}`,
-      })),
-    },
-  ]), [catalog])
-
+  const isRunnable = definition?.status === 'PREVIEW' || definition?.status === 'IMPLEMENTING' || definition?.status === 'REFERENCE'
   const displayedRows = useMemo(() => {
-    const text = quickSearch.trim().toLocaleLowerCase('vi-VN')
+    const text = normalizeSearch(quickSearch)
     const rows = result?.rows ?? []
     if (!text) return rows
     return rows.filter(row => Object.values(row).some(value =>
-      value != null && String(value).toLocaleLowerCase('vi-VN').includes(text)))
+      value != null && normalizeSearch(String(value)).includes(text)))
   }, [quickSearch, result])
 
   const availableColumns = result?.columns ?? []
   const visibleColumns = availableColumns.filter(c => !hiddenColumns.includes(c.key))
-  const columns: ColumnsType<Record<string, unknown>> = visibleColumns.map(c => ({
-    key: c.key,
-    dataIndex: c.key,
-    title: c.title,
-    align: c.type === 'integer' || c.type === 'decimal' ? 'right' : 'left',
-    ellipsis: { showTitle: true },
-    render: (value: unknown) => value == null ? <Text type="secondary">—</Text> :
-      c.type === 'integer' && typeof value === 'number' ? formatCount(value) : String(value),
-  }))
+  // Build grouped headers from the server result contract. I.1's legacy
+  // three-field columns remain unchanged; allocation day groups are metadata-driven.
+  const columns: ColumnsType<Record<string, unknown>> = []
+  for (const c of visibleColumns) {
+    let target: ColumnsType<Record<string, unknown>> = columns
+    for (const title of c.groupPath ?? []) {
+      const displayedTitle = formatGroupHeader(title)
+      const existing = target.find(entry => 'children' in entry && entry.title === displayedTitle)
+      if (existing && 'children' in existing && existing.children) {
+        target = existing.children
+      } else {
+        const group = { title: displayedTitle, children: [] as ColumnsType<Record<string, unknown>> }
+        target.push(group)
+        target = group.children
+      }
+    }
+    target.push({
+      key: c.key,
+      dataIndex: c.key,
+      title: c.title,
+      align: c.type === 'integer' || c.type === 'decimal' ? 'right' : 'left',
+      ellipsis: { showTitle: true },
+      render: (value: unknown) => value == null ? <Text type="secondary">—</Text> : formatReportValue(value, c),
+    })
+  }
 
   async function run(patch?: Partial<ReportQuery>) {
-    if (!isPreview) return
+    if (!isRunnable) return
     const input = { ...query, ...patch }
     const version = ++requestVersion.current
+    trendRequest.current += 1
+    setTrendVisible(false)
+    setTrend(null)
+    setTrendError(null)
     setLoading(true)
     setError(null)
     setResult(null)
+    setAppliedQuery(null)
+    setSearchInput('')
     setQuickSearch('')
     try {
       const data = await runReport(selectedCode, input)
       if (version === requestVersion.current) {
         setQuery(input)
         setResult(data)
+        setAppliedQuery(input)
         setHiddenColumns([])
+        if (selectedCode.startsWith('II.')) {
+          const trendVersion = ++trendRequest.current
+          setTrendLoading(true)
+          void loadRevenueTrend(selectedCode, input)
+            .then(items => {
+              if (trendVersion === trendRequest.current) {
+                setTrend(items)
+                setTrendVisible(true)
+              }
+            })
+            .catch(err => {
+              if (trendVersion === trendRequest.current) setTrendError((err as Error).message)
+            })
+            .finally(() => {
+              if (trendVersion === trendRequest.current) setTrendLoading(false)
+            })
+        }
       }
     } catch (e) {
       if (version === requestVersion.current) setError((e as Error).message)
@@ -122,29 +163,61 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
     }
   }
 
+  async function toggleTrend() {
+    if (trendVisible) { setTrendVisible(false); return }
+    if (trend) { setTrendVisible(true); return }
+    if (!appliedQuery || !selectedCode.startsWith('II.')) return
+    const version = ++trendRequest.current
+    setTrendLoading(true)
+    setTrendError(null)
+    try {
+      const data = await loadRevenueTrend(selectedCode, appliedQuery)
+      if (version === trendRequest.current) { setTrend(data); setTrendVisible(true) }
+    } catch (e) {
+      if (version === trendRequest.current) setTrendError((e as Error).message)
+    } finally {
+      if (version === trendRequest.current) setTrendLoading(false)
+    }
+  }
+
   async function excel() {
-    if (!result) return
+    if (!result || !appliedQuery) return
     setExporting(true)
     setError(null)
-    try { await exportReport(selectedCode, query) }
+    try { await exportReport(selectedCode, appliedQuery) }
     catch (e) { setError((e as Error).message) }
     finally { setExporting(false) }
   }
 
   const invalidateResult = () => {
     requestVersion.current += 1
+    trendRequest.current += 1
+    setTrendVisible(false)
+    setTrendLoading(false)
+    setTrend(null)
+    setTrendError(null)
     setLoading(false)
     setResult(null)
+    setAppliedQuery(null)
     setError(null)
+    setSearchInput('')
     setQuickSearch('')
   }
 
   const reset = () => {
     requestVersion.current += 1
+    trendRequest.current += 1
+    setTrendVisible(false)
+    setTrendLoading(false)
+    setTrend(null)
+    setTrendError(null)
+    setShowDetails(!selectedCode.startsWith('II.'))
     setLoading(false)
-    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: 'AGENCY_KITS' })
+    setQuery({ month: currentMonth(), agencyId: null, page: 1, pageSize: 50, previewMode: selectedCode === 'I.1' ? 'LEGACY_REFERENCE' : undefined })
     setResult(null)
+    setAppliedQuery(null)
     setError(null)
+    setSearchInput('')
     setQuickSearch('')
     setHiddenColumns([])
   }
@@ -155,39 +228,22 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
         <div>
           <Text type="secondary">{navigation?.group === 'REVENUE' ? 'Báo cáo doanh thu' : 'Báo cáo chi phí'} · {selectedCode}</Text>
           <Title level={3} style={{ margin: '5px 0 6px' }}>{definition?.title ?? navigation?.title ?? selectedCode}</Title>
-          <Text type="secondary">{definition?.description ?? 'Báo cáo thuộc danh mục Phase 1'}</Text>
+          <Text type="secondary">{'Chọn kỳ báo cáo để xem dữ liệu và so sánh theo thời gian.'}</Text>
         </div>
-        <Tag color={isPreview ? 'blue' : definition?.status === 'PLANNED' ? 'default' : 'orange'}>
-          {isPreview ? 'Preview kỹ thuật' : definition?.status === 'PLANNED' ? 'Chưa triển khai' : 'Đang kiểm tra trạng thái'}
-        </Tag>
+
       </div>
 
       <Card title="Điều kiện báo cáo" className="report-filter-card">
         <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-          <div className="report-filter-item">
-            <Text strong>Chọn báo cáo</Text>
-            <Select
-              showSearch
-              optionFilterProp="label"
-              aria-label="Chọn báo cáo"
-              value={selectedCode}
-              options={groups}
-              onChange={code => {
-                requestVersion.current += 1
-                onSelectReport(code)
-              }}
-              style={{ width: '100%', maxWidth: 780 }}
-            />
-          </div>
           {catalogError && <Alert showIcon type="warning" message="Không lấy được danh mục từ backend" description={catalogError} />}
-          {isPreview ? (
+          {isRunnable ? (
             <div className="report-filter-grid">
               <div className="report-filter-item">
                 <Text strong>Tháng báo cáo</Text>
                 <DatePicker
                   picker="month"
                   value={dayjs(query.month + '-01')}
-                  format="MM/YYYY"
+                  format="[Tháng] M [năm] YYYY"
                   allowClear={false}
                   onChange={date => {
                     setQuery(q => ({ ...q, month: date ? date.format('YYYY-MM') : currentMonth(), page: 1 }))
@@ -195,6 +251,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
                   }}
                 />
               </div>
+              {(selectedCode === 'I.1' || selectedCode === 'I.2') && (
               <div className="report-filter-item">
                 <Text strong>ID đại lý <Text type="secondary">(tạm thời)</Text></Text>
                 <InputNumber
@@ -208,21 +265,6 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
                   style={{ width: 195 }}
                 />
               </div>
-              {showPackagePreview && (
-                <div className="report-filter-item">
-                  <Text strong>Đối soát KIT — không phải báo cáo tiền</Text>
-                  <Segmented
-                    value={query.previewMode ?? 'AGENCY_KITS'}
-                    options={[
-                      { label: 'Theo đại lý', value: 'AGENCY_KITS' },
-                      { label: 'Theo đại lý × gói', value: 'PACKAGE_KITS' },
-                    ]}
-                    onChange={value => {
-                      setQuery(q => ({ ...q, previewMode: value as 'AGENCY_KITS' | 'PACKAGE_KITS', page: 1 }))
-                      invalidateResult()
-                    }}
-                  />
-                </div>
               )}
               <div className="report-filter-item">
                 <Text strong>Số dòng / trang</Text>
@@ -266,24 +308,40 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
 
       {result && (
         <Card className="report-result-card" title={<Space wrap><span>Kết quả báo cáo</span><Tag color="blue">{result.code}</Tag></Space>}>
-          {result.notice && <Alert style={{ marginBottom: 16 }} type="warning" showIcon message={result.notice} />}
+          {result.notice && <details className="report-data-notice"><summary>Thông tin nguồn và cách tính</summary><Text type="secondary">{result.notice}</Text></details>}
           <div className="report-result-metrics">
             <Space size="large" wrap>
               <div><Text type="secondary">Tổng số dòng</Text><div><Text strong>{formatCount(result.totalRows)}</Text></div></div>
               <div><Text type="secondary">Trang hiện tại</Text><div><Text strong>{result.page}</Text></div></div>
-              <div><Text type="secondary">Kỳ đã chạy</Text><div><Text strong>{query.month}</Text></div></div>
+              <div><Text type="secondary">Kỳ đã chạy</Text><div><Text strong>{formatReportMonth(appliedQuery?.month ?? query.month)}</Text></div></div>
             </Space>
-            <Tag>Không tính tổng tài chính ở frontend</Tag>
+
           </div>
+          {selectedCode.startsWith('II.') && (
+            <div className="revenue-trend-section">
+              <Button onClick={() => void toggleTrend()} loading={trendLoading}>
+                {trendVisible ? 'Ẩn biểu đồ xu hướng' : 'Xem xu hướng 6 tháng'}
+              </Button>
+              {trendError && <Alert type="warning" showIcon message="Không tải được biểu đồ" description={trendError} style={{ marginTop: 8 }} />}
+              {trendVisible && trend && <RevenueTrendChart trend={trend} />}
+            </div>
+          )}
+          {selectedCode.startsWith('II.') && (
+            <Button className="report-detail-toggle" onClick={() => setShowDetails(v => !v)}>
+              {showDetails ? 'Ẩn bảng số liệu' : 'Xem bảng số liệu chi tiết'}
+            </Button>
+          )}
+          {showDetails && <>
           <div className="report-table-toolbar">
             <Input
               prefix={<SearchOutlined />}
-              placeholder="Tìm trong trang đã tải..."
-              value={quickSearch}
+              placeholder="Nhập từ khóa, nhấn Enter"
+              value={searchInput}
               allowClear
-              onChange={e => setQuickSearch(e.target.value)}
+              onChange={e => { setSearchInput(e.target.value); if (!e.target.value) setQuickSearch('') }}
+              onPressEnter={() => setQuickSearch(searchInput.trim())}
               style={{ width: 255, maxWidth: '100%' }}
-              aria-label="Tìm nhanh trên trang hiện tại"
+              aria-label="Tìm trong trang hiện tại bằng Enter"
             />
             <Popover trigger="click" placement="bottomRight" content={
               <div style={{ width: 250, maxHeight: 300, overflowY: 'auto' }}>
@@ -312,7 +370,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
             />
           </div>
           <Paragraph type="secondary" style={{ marginBottom: 8, fontSize: 12 }}>
-            Tìm nhanh và ẩn cột chỉ ảnh hưởng bảng đang xem; Excel vẫn xuất theo bộ lọc báo cáo, không theo ô tìm nhanh.
+            Nhấn Enter để tìm trong trang đang hiển thị. Excel dùng bộ lọc đã chạy, không bị ảnh hưởng bởi ô tìm kiếm.
             {quickSearch && ` Khớp ${formatCount(displayedRows.length)}/${formatCount(result.rows.length)} dòng trên trang này.`}
           </Paragraph>
           <Table<Record<string, unknown>>
@@ -334,6 +392,7 @@ export default function ReportsWorkspace({ selectedCode, onSelectReport }: Works
               onChange: page => { void run({ page }) },
             }}
           />
+          </>}
         </Card>
       )}
     </div>

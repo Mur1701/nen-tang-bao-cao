@@ -2,7 +2,7 @@ import { apiUrl } from '../../config/api'
 import { csrfHeader } from '../auth/authApi'
 export type ReportGroup = 'COST' | 'REVENUE'
 export type PeriodFilter = 'MONTH' | 'TBD'
-export type ReportStatus = 'PLANNED' | 'PREVIEW'
+export type ReportStatus = 'PLANNED' | 'PREVIEW' | 'IMPLEMENTING' | 'REFERENCE'
 
 export interface ReportDefinition {
   code: string
@@ -13,18 +13,56 @@ export interface ReportDefinition {
   description: string
 }
 
+export interface ReportSchemaColumn {
+  key: string
+  title: string
+  type: 'text' | 'integer' | 'decimal' | 'date' | 'datetime'
+  group: string | null
+}
+
+export interface ReportSchemaDynamicGroup {
+  key: string
+  title: string
+  period: 'CURRENT_MONTH' | 'NEXT_MONTH'
+  measures: string[]
+}
+
+export interface ReportSchema {
+  code: string
+  source: string
+  filters: ('month' | 'agencyId')[]
+  columns: ReportSchemaColumn[]
+  dynamicGroups: ReportSchemaDynamicGroup[]
+  status: string
+  executable: boolean
+  blocker: string
+}
+
 export interface ReportQuery {
   month: string
   agencyId: number | null
   page: number
   pageSize: number
-  previewMode?: 'AGENCY_KITS' | 'PACKAGE_KITS'
+  previewMode?: 'AGENCY_KITS' | 'PACKAGE_KITS' | 'LEGACY_REFERENCE'
 }
 
 export interface ReportColumn {
   key: string
   title: string
   type: string
+  groupPath?: string[]
+}
+
+export interface RevenueTrendPoint {
+  month: string
+  primary: string | null
+  secondary: string | null
+}
+export interface RevenueTrend {
+  code: string
+  primaryLabel: string
+  secondaryLabel: string | null
+  points: RevenueTrendPoint[]
 }
 
 export interface ReportResult {
@@ -82,9 +120,24 @@ export async function listReports(): Promise<ReportDefinition[]> {
   return (await request('/api/reports')).json() as Promise<ReportDefinition[]>
 }
 
+export async function getReportSchema(code: string): Promise<ReportSchema> {
+  return (await request(`/api/reports/${encodeURIComponent(code)}/schema`))
+    .json() as Promise<ReportSchema>
+}
+
+export async function listReportSchemas(): Promise<ReportSchema[]> {
+  return (await request('/api/reports/schemas')).json() as Promise<ReportSchema[]>
+}
+
 export async function runReport(code: string, query: ReportQuery): Promise<ReportResult> {
   return (await request(`/api/reports/${encodeURIComponent(code)}/run`, await postOptions(query)))
     .json() as Promise<ReportResult>
+}
+
+export async function loadRevenueTrend(code: string, query: ReportQuery): Promise<RevenueTrend> {
+  if (!/^II\.[1-5]$/.test(code)) throw new Error('Mã báo cáo doanh thu không hợp lệ')
+  return (await request(`/api/reports/${code}/trend`, await postOptions(query)))
+    .json() as Promise<RevenueTrend>
 }
 
 export async function exportReport(code: string, query: ReportQuery): Promise<void> {
@@ -94,7 +147,7 @@ export async function exportReport(code: string, query: ReportQuery): Promise<vo
   try {
     const a = document.createElement('a')
     a.href = url
-    a.download = `pottel-${code.replace('.', '-')}-preview.xlsx`
+    a.download = `pottel-${code.replace('.', '-')}${query.previewMode === 'AGENCY_KITS' || query.previewMode === 'PACKAGE_KITS' ? '-KIT-PREVIEW' : '-REFERENCE'}.xlsx`
     document.body.appendChild(a)
     a.click()
     a.remove()

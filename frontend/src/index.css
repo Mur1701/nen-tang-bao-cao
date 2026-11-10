@@ -43,7 +43,7 @@ body { margin: 0; min-width: 320px; }
 .report-table-toolbar { display: flex; justify-content: flex-end; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 9px; }
 @media (max-width: 850px) {
   .app-header { padding: 8px 12px; }
-  .app-header-actions .ant-select { display: none; }
+  
   .app-content { padding: 16px; }
   .report-heading { flex-direction: column; }
   .report-table-toolbar { justify-content: flex-start; }
@@ -52,3 +52,19 @@ body { margin: 0; min-width: 320px; }
 /* Admin-only login: shares the Pottel SPA theme, no duplicated report shell. */
 .pottel-login-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: #f5f7fa; padding: 18px; }
 .pottel-login-card { width: 100%; max-width: 440px; box-shadow: 0 8px 36px rgba(12, 35, 65, .08); }
+
+/* Report search shows its results only after Enter. */
+.app-report-search { position: relative; width: 290px; max-width: 100%; }
+.app-report-search-results { position: absolute; z-index: 20; top: calc(100% + 6px); left: 0; right: 0; padding: 8px; background: #fff; border: 1px solid #e5e9ef; border-radius: 8px; box-shadow: 0 10px 26px rgba(15,23,42,.1); max-height: 270px; overflow-y: auto; }
+.app-report-search-results .ant-btn { white-space: normal; height: auto; min-height: 34px; text-align: left; justify-content: flex-start; }
+@media (max-width: 850px) { .app-report-search { display: none; } }
+
+/* Real II.5 monthly revenue trend, separate from the financial detail table. */
+.revenue-trend-section { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; margin: 12px 0 20px; }
+.revenue-trend-section > .ant-card { width: 100%; }
+.revenue-trend-legend { display: flex; justify-content: center; gap: 24px; flex-wrap: wrap; }
+.revenue-trend-legend span { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.revenue-trend-legend i { width: 18px; height: 3px; border-radius: 2px; }
+.revenue-trend-table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+.revenue-trend-table th, .revenue-trend-table td { padding: 8px 12px; border-bottom: 1px solid #e5e9ef; text-align: right; }
+.revenue-trend-table th:first-child, .revenue-trend-table td:first-child { text-align: left; }

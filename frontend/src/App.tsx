@@ -13,7 +13,7 @@ import AppSidebar from './components/layout/AppSidebar'
 import AppHeader from './components/layout/AppHeader'
 import DashboardPage from './features/dashboard/DashboardPage'
 import ReportsWorkspace from './features/reports/ReportsWorkspace'
-import { REPORT_NAVIGATION, reportPath } from './features/reports/reportNavigation'
+import { REPORT_NAVIGATION } from './features/reports/reportNavigation'
 import LoginPage from './features/auth/LoginPage'
 import { currentAdmin, logoutAdmin, type AdminIdentity } from './features/auth/authApi'
 
@@ -29,14 +29,13 @@ function HomeRoute() {
 
 function ReportRoute({ group }: { group: 'cost' | 'revenue' }) {
   const { reportSlug } = useParams()
-  const navigate = useNavigate()
   const slug = reportSlug?.toLowerCase() ?? ''
   const valid = group === 'cost' ? /^i[1-7]$/.test(slug) : /^ii[1-5]$/.test(slug)
   if (!valid) {
     return <Navigate to={group === 'cost' ? '/reports/cost/i1' : '/reports/revenue/ii1'} replace />
   }
   const selectedCode = group === 'cost' ? `I.${slug.slice(1)}` : `II.${slug.slice(2)}`
-  return <ReportsWorkspace selectedCode={selectedCode} onSelectReport={code => navigate(reportPath(code))} />
+  return <ReportsWorkspace selectedCode={selectedCode} />
 }
 
 /** One shared React SPA for all 12 Phase 1 reports; auth wraps the same layout. */
