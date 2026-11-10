@@ -30,7 +30,7 @@ public final class Phase1ReportSchemaCatalog {
         return new Schema(code, "SRS_" + code.replace(".", "")
                         + ".md " + ("I.1".equals(code) ? "v0.3" : "v0.1")
                         + " DRAFT (04/11/2026)",
-                filters, columns, days, status, false, blocker);
+                filters, columns, days, status, true, blocker);
     }
 
     private static final Map<String, Schema> BY_CODE = build();
@@ -52,7 +52,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("vat_amount", "VAT", "decimal", null),
                 c("missing_price", "Thiếu giá", "integer", null)
             ),
-            List.of(), "IMPLEMENTING", "Cần xác minh eligible active, giá lịch sử và quyết định khuyến khích I.1."));
+            List.of(), "LEGACY_REFERENCE", "Cần xác minh eligible active, giá lịch sử và quyết định khuyến khích I.1."));
 
         put(map, s("I.2", List.of("month", "agencyId"),
             List.of(
@@ -67,7 +67,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("vat_amount", "VAT", "decimal", null),
                 c("incentive_net", "Tổng tiền trước VAT", "decimal", null)
             ),
-            List.of(), "DRAFT_UNVERIFIED", "TBD-I2-01..03: kế thừa eligibility/chính sách I.1, khử trùng thuê bao/gói và đối soát."));
+            List.of(), "LEGACY_REFERENCE", "TBD-I2-01..03: kế thừa eligibility/chính sách I.1, khử trùng thuê bao/gói và đối soát."));
 
         put(map, s("I.3", List.of("month"),
             List.of(
@@ -82,7 +82,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("commission_net", "Tiền HHBG chưa VAT", "decimal", null),
                 c("vat_amount", "VAT", "decimal", null)
             ),
-            List.of(d("current", "Phân bổ chi phí trong kỳ", "CURRENT_MONTH", "CP chưa VAT|VAT|Tổng CP"), d("next", "Phân bổ chi phí kỳ sau", "NEXT_MONTH", "CP chưa VAT|VAT|Tổng CP")), "DRAFT_UNVERIFIED", "TBD-I3-01..03: mâu thuẫn cơ sở phân bổ (hoa hồng/giá gói), chu kỳ, phần dư, đợt chi trả."));
+            List.of(d("current", "Phân bổ chi phí trong kỳ", "CURRENT_MONTH", "CP chưa VAT|VAT|Tổng CP"), d("next", "Phân bổ chi phí kỳ sau", "NEXT_MONTH", "CP chưa VAT|VAT|Tổng CP")), "LEGACY_REFERENCE", "TBD-I3-01..03: mâu thuẫn cơ sở phân bổ (hoa hồng/giá gói), chu kỳ, phần dư, đợt chi trả."));
 
         put(map, s("I.4", List.of("month"),
             List.of(
@@ -97,7 +97,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("commission_net", "Số tiền hoa hồng chưa VAT", "decimal", null),
                 c("vat_amount", "VAT", "decimal", null)
             ),
-            List.of(), "DRAFT_UNVERIFIED", "TBD-I4-01..02: cutoff chưa active gói và nhiều đợt chi trả/nguồn snapshot."));
+            List.of(), "LEGACY_REFERENCE", "TBD-I4-01..02: cutoff chưa active gói và nhiều đợt chi trả/nguồn snapshot."));
 
         put(map, s("I.5", List.of("month"),
             List.of(
@@ -114,7 +114,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("vat_amount", "VAT", "decimal", null),
                 c("allocated_days", "Số ngày phân bổ trong kỳ", "integer", null)
             ),
-            List.of(d("current", "Ngày phân bổ chi phí trong kỳ", "CURRENT_MONTH", "CP chưa VAT|VAT|Tổng tiền")), "DRAFT_UNVERIFIED", "TBD-I5-01..03: lịch phân bổ/kỳ trước, cơ sở chi phí và làm tròn."));
+            List.of(d("current", "Ngày phân bổ chi phí trong kỳ", "CURRENT_MONTH", "CP chưa VAT|VAT|Tổng tiền")), "LEGACY_REFERENCE", "TBD-I5-01..03: lịch phân bổ/kỳ trước, cơ sở chi phí và làm tròn."));
 
         put(map, s("I.6", List.of("month"),
             List.of(
@@ -131,10 +131,11 @@ public final class Phase1ReportSchemaCatalog {
                 c("vat_amount", "VAT", "decimal", null),
                 c("forward_days", "Số ngày phân bổ sang kỳ sau", "integer", null)
             ),
-            List.of(d("next", "Ngày phân bổ chi phí kỳ sau", "NEXT_MONTH", "CP chưa VAT|VAT|Tổng tiền")), "DRAFT_UNVERIFIED", "TBD-I6-01..03: nhiều đợt chi trả, phần dư và chu kỳ kéo dài qua n+1."));
+            List.of(d("next", "Ngày phân bổ chi phí kỳ sau", "NEXT_MONTH", "CP chưa VAT|VAT|Tổng tiền")), "LEGACY_REFERENCE", "TBD-I6-01..03: nhiều đợt chi trả, phần dư và chu kỳ kéo dài qua n+1."));
 
         put(map, s("I.7", List.of("month"),
             List.of(
+                c("agency_name", "Đại lý", "text", null),
                 c("opening_net", "CP chưa VAT", "decimal", "Chi phí trả trước chờ phân bổ đầu kỳ (1)"),
                 c("opening_vat", "VAT", "decimal", "Chi phí trả trước chờ phân bổ đầu kỳ (1)"),
                 c("opening_gross", "Tổng tiền", "decimal", "Chi phí trả trước chờ phân bổ đầu kỳ (1)"),
@@ -148,7 +149,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("closing_vat", "VAT", "decimal", "Chi phí chưa phân bổ cuối kỳ = (1)+(2)−(3)"),
                 c("closing_gross", "Tổng tiền", "decimal", "Chi phí chưa phân bổ cuối kỳ = (1)+(2)−(3)")
             ),
-            List.of(), "DRAFT_UNVERIFIED", "TBD-I7-01..03: xác minh khoản đầu kỳ/phát sinh/phân bổ, số dư và đối chiếu I.4–I.6."));
+            List.of(), "LEGACY_REFERENCE", "TBD-I7-01..03: xác minh khoản đầu kỳ/phát sinh/phân bổ, số dư và đối chiếu I.4–I.6."));
 
         put(map, s("II.1", List.of("month"),
             List.of(
@@ -161,7 +162,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("revenue_net", "Doanh thu chưa VAT", "decimal", null),
                 c("vat_amount", "VAT", "decimal", null)
             ),
-            List.of(d("current", "Doanh thu phân bổ trong kỳ", "CURRENT_MONTH", "DT chưa VAT|VAT|Tổng DT"), d("next", "Doanh thu phân bổ kỳ sau", "NEXT_MONTH", "DT chưa VAT|VAT|Tổng DT")), "DRAFT_UNVERIFIED", "TBD-II1-01..03: cơ sở doanh thu, tái tục/hủy gói, chu kỳ, phần dư."));
+            List.of(d("current", "Doanh thu phân bổ trong kỳ", "CURRENT_MONTH", "DT chưa VAT|VAT|Tổng DT"), d("next", "Doanh thu phân bổ kỳ sau", "NEXT_MONTH", "DT chưa VAT|VAT|Tổng DT")), "LEGACY_REFERENCE", "TBD-II1-01..03: cơ sở doanh thu, tái tục/hủy gói, chu kỳ, phần dư."));
 
         put(map, s("II.2", List.of("month"),
             List.of(
@@ -173,7 +174,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("revenue_net", "Doanh thu chưa VAT", "decimal", null),
                 c("vat_amount", "VAT", "decimal", null)
             ),
-            List.of(), "DRAFT_UNVERIFIED", "TBD-II2-01..03: xác định chưa active gói theo cutoff, giá lịch sử và VAT."));
+            List.of(), "LEGACY_REFERENCE", "TBD-II2-01..03: xác định chưa active gói theo cutoff, giá lịch sử và VAT."));
 
         put(map, s("II.3", List.of("month"),
             List.of(
@@ -187,7 +188,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("vat_amount", "VAT", "decimal", null),
                 c("allocated_days", "Số ngày phân bổ trong kỳ", "integer", null)
             ),
-            List.of(d("current", "Doanh thu phân bổ trong kỳ theo ngày", "CURRENT_MONTH", "DT chưa VAT|VAT|Tổng tiền")), "DRAFT_UNVERIFIED", "TBD-II3-01..03: ngày từ kỳ trước, chu kỳ/lần active và rounding."));
+            List.of(d("current", "Doanh thu phân bổ trong kỳ theo ngày", "CURRENT_MONTH", "DT chưa VAT|VAT|Tổng tiền")), "LEGACY_REFERENCE", "TBD-II3-01..03: ngày từ kỳ trước, chu kỳ/lần active và rounding."));
 
         put(map, s("II.4", List.of("month"),
             List.of(
@@ -201,7 +202,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("vat_amount", "VAT", "decimal", null),
                 c("forward_days", "Số ngày phân bổ kỳ sau", "integer", null)
             ),
-            List.of(d("next", "Doanh thu phân bổ sang kỳ sau (nhãn CP chưa VAT trong form gốc đang TBD)", "NEXT_MONTH", "CP chưa VAT|VAT|Tổng tiền")), "DRAFT_UNVERIFIED", "TBD-II4-01..03: nhãn CP/DT trong biểu mẫu, ngày cuối và chu kỳ >2 tháng."));
+            List.of(d("next", "Doanh thu phân bổ sang kỳ sau (nhãn CP chưa VAT trong form gốc đang TBD)", "NEXT_MONTH", "CP chưa VAT|VAT|Tổng tiền")), "LEGACY_REFERENCE", "TBD-II4-01..03: nhãn CP/DT trong biểu mẫu, ngày cuối và chu kỳ >2 tháng."));
 
         put(map, s("II.5", List.of("month"),
             List.of(
@@ -226,7 +227,7 @@ public final class Phase1ReportSchemaCatalog {
                 c("closing_vat", "VAT", "decimal", "Doanh thu gói chưa PB cuối kỳ = (1)+(2)−(3)"),
                 c("closing_gross", "Tổng tiền", "decimal", "Doanh thu gói chưa PB cuối kỳ = (1)+(2)−(3)")
             ),
-            List.of(), "DRAFT_UNVERIFIED", "TBD-II5-01..03: bậc giá Profile theo lô, 25.000đ hòa mạng, VAT, nguồn phân bổ và đối chiếu."));
+            List.of(), "LEGACY_REFERENCE", "TBD-II5-01..03: bậc giá Profile theo lô, 25.000đ hòa mạng, VAT, nguồn phân bổ và đối chiếu."));
 
         return Map.copyOf(map);
     }
