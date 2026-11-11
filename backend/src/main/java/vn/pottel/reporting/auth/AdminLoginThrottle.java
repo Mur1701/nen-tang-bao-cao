@@ -5,44 +5,108 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.web.filter.OncePerRequestFilter;
+
 import java.io.IOException;
 import java.time.Instant;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.LongSupplier;
 
-/** Per-instance guard; production still requires edge rate limits / a shared backing store. */
+/**
+ * In-process bounded guard for BSS admin login attempts.
+ * IMPORTANT: Internet deployments also require shared edge rate limiting.
+ * Full map capacity must never block ALL previously clean admin logins.
+ */
 public final class AdminLoginThrottle extends OncePerRequestFilter {
-    private static final int MAX_ATTEMPTS = 5;
-    private static final int MAX_KEYS = 10_000;
-    private static final long WINDOW_SECONDS = 900;
+    private static final int DEFAULT_MAX_ATTEMPTS = 5;
+    private static final int DEFAULT_MAX_KEYS = 10_000;
+    private static final long DEFAULT_WINDOW_SECONDS = 900;
     private record Counter(long since, int failures) {}
-    private final ConcurrentHashMap<String, Counter> attempts = new ConcurrentHashMap<>();
+
+    private final Map<String, Counter> attempts = new LinkedHashMap<>();
+    private final LongSupplier clock;
+    private final int maxKeys;
+    private final int maxAttempts;
+    private final long windowSeconds;
+
+    public AdminLoginThrottle() {
+        this(() -> Instant.now().getEpochSecond(),
+                DEFAULT_MAX_KEYS, DEFAULT_MAX_ATTEMPTS, DEFAULT_WINDOW_SECONDS);
+    }
+
+    // Package-private deterministic test seam: no HTTP floods or sleeping.
+    AdminLoginThrottle(LongSupplier clock, int maxKeys, int maxAttempts, long windowSeconds) {
+        if (maxKeys < 1 || maxAttempts < 1 || windowSeconds < 1)
+            throw new IllegalArgumentException("Invalid throttle limits");
+        this.clock = clock;
+        this.maxKeys = maxKeys;
+        this.maxAttempts = maxAttempts;
+        this.windowSeconds = windowSeconds;
+    }
 
     private static String key(String address, String username) {
-        String user = username == null ? "" : username.trim().toLowerCase(java.util.Locale.ROOT);
+        String user = username == null ? "" : username.trim().toLowerCase(Locale.ROOT);
         if (user.length() > 50) user = user.substring(0, 50);
-        return address + ":" + user;
+        return (address == null ? "" : address) + ":" + user;
     }
+
     public void fail(HttpServletRequest request) {
         String key = key(request.getRemoteAddr(), request.getParameter("username"));
-        long now = Instant.now().getEpochSecond();
-        if (attempts.size() >= MAX_KEYS && !attempts.containsKey(key)) return;
-        attempts.compute(key, (k, old) -> old == null || now - old.since > WINDOW_SECONDS
-                ? new Counter(now, 1) : new Counter(old.since, old.failures + 1));
+        long now = clock.getAsLong();
+        synchronized (attempts) {
+            Counter old = attempts.get(key);
+            if (old != null && now - old.since >= windowSeconds) {
+                attempts.remove(key);
+                old = null;
+            }
+            if (old == null) {
+                // Bounded O(1) insertion-order eviction. Not a global deny.
+                // Edge limits are still required to protect against rotating keys.
+                if (attempts.size() >= maxKeys) {
+                    Iterator<String> iterator = attempts.keySet().iterator();
+                    if (iterator.hasNext()) {
+                        iterator.next();
+                        iterator.remove();
+                    }
+                }
+                attempts.put(key, new Counter(now, 1));
+            } else {
+                attempts.put(key, new Counter(old.since,
+                        Math.min(maxAttempts, old.failures + 1)));
+            }
+        }
     }
+
     public void succeeded(HttpServletRequest request) {
-        attempts.remove(key(request.getRemoteAddr(), request.getParameter("username")));
+        synchronized (attempts) {
+            attempts.remove(key(request.getRemoteAddr(), request.getParameter("username")));
+        }
     }
+
     @Override protected boolean shouldNotFilter(HttpServletRequest request) {
-        return !"POST".equals(request.getMethod()) || !"/api/auth/login".equals(request.getRequestURI());
+        return !"POST".equals(request.getMethod())
+                || !"/api/auth/login".equals(request.getRequestURI());
     }
+
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                                FilterChain chain) throws IOException, ServletException {
-        long now = Instant.now().getEpochSecond();
-        Counter c = attempts.get(key(request.getRemoteAddr(), request.getParameter("username")));
-        if (attempts.size() >= MAX_KEYS ||
-            (c != null && now - c.since <= WINDOW_SECONDS && c.failures >= MAX_ATTEMPTS)) {
+        long now = clock.getAsLong();
+        Counter active;
+        String requestKey = key(request.getRemoteAddr(), request.getParameter("username"));
+        synchronized (attempts) {
+            active = attempts.get(requestKey);
+            if (active != null && now - active.since >= windowSeconds) {
+                attempts.remove(requestKey);
+                active = null;
+            }
+        }
+        if (active != null && active.failures >= maxAttempts) {
+            long seconds = Math.max(1L, windowSeconds - Math.max(0L, now - active.since));
             response.setStatus(429);
-            response.setHeader("Retry-After", "900");
+            response.setHeader("Retry-After", Long.toString(seconds));
+            response.setHeader("Cache-Control", "no-store");
             response.setContentType("application/json;charset=UTF-8");
             response.getWriter().write("{\"error\":\"Too many login attempts\"}");
             return;
