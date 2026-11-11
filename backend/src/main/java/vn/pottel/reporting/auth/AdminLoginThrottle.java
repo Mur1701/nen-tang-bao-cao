@@ -104,7 +104,7 @@ public final class AdminLoginThrottle extends OncePerRequestFilter {
         }
         if (active != null && active.failures >= maxAttempts) {
             long seconds = Math.max(1L, windowSeconds - Math.max(0L, now - active.since));
-            response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+            response.setStatus(429);
             response.setHeader("Retry-After", Long.toString(seconds));
             response.setHeader("Cache-Control", "no-store");
             response.setContentType("application/json;charset=UTF-8");
