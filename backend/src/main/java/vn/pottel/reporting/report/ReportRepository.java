@@ -3,6 +3,7 @@ package vn.pottel.reporting.report;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Repository;
+import vn.pottel.reporting.security.ReportQueryTimeout;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,9 +26,11 @@ public class ReportRepository {
           + "incentive_total, incentive_before_vat, vat_amount, missing_price";
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final ReportQueryTimeout timeout;
 
-    public ReportRepository(NamedParameterJdbcTemplate jdbc) {
+    public ReportRepository(NamedParameterJdbcTemplate jdbc, ReportQueryTimeout timeout) {
         this.jdbc = jdbc;
+        this.timeout = timeout;
     }
 
     private MapSqlParameterSource args(LocalDate monthStart, Integer agencyId) {
@@ -37,12 +40,14 @@ public class ReportRepository {
     }
 
     public long countI1(LocalDate monthStart, Integer agencyId) {
+        timeout.apply(jdbc);
         Long count = jdbc.queryForObject("SELECT count(*) " + I1_FROM,
                 args(monthStart, agencyId), Long.class);
         return count == null ? 0 : count;
     }
 
     public List<Map<String, Object>> i1(LocalDate monthStart, Integer agencyId, int limit, long offset) {
+        timeout.apply(jdbc);
         var params = args(monthStart, agencyId)
                 .addValue("limit", limit)
                 .addValue("offset", offset);
@@ -82,6 +87,7 @@ public class ReportRepository {
     }
 
     public long countReference(String code, LocalDate monthStart, Integer agencyId) {
+        timeout.apply(jdbc);
         Long total = jdbc.queryForObject(
                 "SELECT count(*)" + referenceFrom(code),
                 referenceArgs(code, monthStart, agencyId), Long.class);
@@ -95,6 +101,7 @@ public class ReportRepository {
      */
     public List<String> referenceJson(String code, LocalDate monthStart, Integer agencyId,
                                       int limit, long offset) {
+        timeout.apply(jdbc);
         var params = referenceArgs(code, monthStart, agencyId)
                 .addValue("limit", limit).addValue("offset", offset);
         return jdbc.queryForList("SELECT row_data::text" + referenceFrom(code)
@@ -111,6 +118,7 @@ public class ReportRepository {
             " FROM reporting.fn_i1_kit_by_package_preview(:monthStart, :agencyId) ";
 
     public long countI1KitPreview(LocalDate monthStart, Integer agencyId) {
+        timeout.apply(jdbc);
         Long count = jdbc.queryForObject("SELECT count(*) " + I1_KIT_FROM,
                 args(monthStart, agencyId), Long.class);
         return count == null ? 0 : count;
@@ -118,12 +126,14 @@ public class ReportRepository {
 
     public List<Map<String, Object>> i1KitPreview(LocalDate monthStart, Integer agencyId,
                                                     int limit, long offset) {
+        timeout.apply(jdbc);
         var params = args(monthStart, agencyId).addValue("limit", limit).addValue("offset", offset);
         return jdbc.queryForList("SELECT agency_id, agency_name, activated_kit_count "
                 + I1_KIT_FROM + " ORDER BY agency_id LIMIT :limit OFFSET :offset", params);
     }
 
     public long countI1PackagePreview(LocalDate monthStart, Integer agencyId) {
+        timeout.apply(jdbc);
         Long count = jdbc.queryForObject("SELECT count(*) " + I1_KIT_PACKAGE_FROM,
                 args(monthStart, agencyId), Long.class);
         return count == null ? 0 : count;
@@ -131,6 +141,7 @@ public class ReportRepository {
 
     public List<Map<String, Object>> i1PackagePreview(LocalDate monthStart, Integer agencyId,
                                                         int limit, long offset) {
+        timeout.apply(jdbc);
         var params = args(monthStart, agencyId).addValue("limit", limit).addValue("offset", offset);
         return jdbc.queryForList("SELECT agency_id, agency_name, package_code, "
                 + "activated_kit_count, agency_kit_total "

@@ -3,12 +3,15 @@ package vn.pottel.reporting.security;
 import jakarta.servlet.DispatcherType;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -24,6 +27,7 @@ import vn.pottel.reporting.auth.BssPasswordEncoder;
 
 /** The report server is deny-by-default; Vercel URLs are NOT an auth boundary. */
 @Configuration(proxyBeanMethods = false)
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
@@ -38,7 +42,9 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity http, AuthenticationProvider adminProvider,
-                          BssAdminUserDetailsService users, AdminLoginThrottle throttle) throws Exception {
+                          BssAdminUserDetailsService users, AdminLoginThrottle throttle,
+                          @Value("${reporting.security.max-concurrent-requests:4}") int maxConcurrentReports)
+                          throws Exception {
         http
           .authenticationProvider(adminProvider)
           .csrf(csrf -> csrf
@@ -94,6 +100,7 @@ public class SecurityConfig {
                 }));
         http.addFilterBefore(throttle, UsernamePasswordAuthenticationFilter.class);
         http.addFilterAfter(new AdminSessionValidationFilter(users), UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(new ReportAdmissionFilter(maxConcurrentReports), AuthorizationFilter.class);
         return http.build();
     }
 }

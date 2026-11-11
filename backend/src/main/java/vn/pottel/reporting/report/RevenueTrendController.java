@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
+import vn.pottel.reporting.security.ReportQueryTimeout;
 
 import java.math.BigDecimal;
 import java.time.DateTimeException;
@@ -60,9 +61,11 @@ public class RevenueTrendController {
     }
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final ReportQueryTimeout timeout;
 
-    public RevenueTrendController(NamedParameterJdbcTemplate jdbc) {
+    public RevenueTrendController(NamedParameterJdbcTemplate jdbc, ReportQueryTimeout timeout) {
         this.jdbc = jdbc;
+        this.timeout = timeout;
     }
 
     @PostMapping("/{code}/trend")
@@ -107,6 +110,7 @@ public class RevenueTrendController {
                 .addValue("lastMonth", end.atDay(1));
         // Primary always aggregates. Keep the SUM at SQL level for all rows.
         try {
+            timeout.apply(jdbc);
             var points = jdbc.query(sql, params, (rs, i) -> new Point(
                     rs.getString("report_month"),
                     decimal(rs.getBigDecimal("primary_amount")),
