@@ -31,7 +31,7 @@ public final class ReportAdmissionFilter extends OncePerRequestFilter {
     @Override protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response,
                                                FilterChain chain) throws IOException, ServletException {
         if (!slots.tryAcquire()) {
-            response.setStatus(HttpServletResponse.SC_TOO_MANY_REQUESTS);
+            response.setStatus(429);
             response.setHeader("Retry-After", "3");
             response.setHeader("Cache-Control", "no-store");
             response.setContentType("application/json;charset=UTF-8");
