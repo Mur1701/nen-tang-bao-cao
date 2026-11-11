@@ -11,6 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
@@ -26,6 +27,7 @@ import vn.pottel.reporting.auth.BssPasswordEncoder;
 
 /** The report server is deny-by-default; Vercel URLs are NOT an auth boundary. */
 @Configuration(proxyBeanMethods = false)
+@EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
