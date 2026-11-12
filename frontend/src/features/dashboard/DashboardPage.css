@@ -1,0 +1,110 @@
+/* Pottel BSS-inspired dashboard. Scoped styles keep the twelve shared report workspaces unchanged. */
+.pottel-dashboard {
+  --pd-navy: #101f3d;
+  --pd-navy-deep: #07162f;
+  --pd-blue: #1760aa;
+  --pd-gold: #f5b80e;
+  --pd-text: #162741;
+  --pd-muted: #6d7990;
+  max-width: 1560px;
+  margin: 0 auto;
+  padding-bottom: 12px;
+  color: var(--pd-text);
+}
+.pottel-dashboard * { box-sizing: border-box; }
+.pottel-dashboard-hero {
+  position: relative;
+  display: flex;
+  min-height: 315px;
+  overflow: hidden;
+  border-radius: 22px;
+  border: 1px solid #203a64;
+  background: radial-gradient(ellipse 75% 100% at 100% 100%, #254978 0, transparent 65%),
+    linear-gradient(114deg, #0b1c37 0%, #102c52 66%, #112345 100%);
+  box-shadow: 0 18px 36px -24px rgba(11, 31, 62, .5);
+  color: #f5f8ff;
+}
+.pottel-dashboard-hero-grid {
+  position: absolute;
+  inset: 0;
+  opacity: .16;
+  pointer-events: none;
+  background-image: linear-gradient(rgba(240,248,255,.13) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(240,248,255,.13) 1px, transparent 1px);
+  background-size: 36px 36px;
+  mask-image: linear-gradient(90deg, transparent 8%, black 100%);
+}
+.pottel-dashboard-hero-copy { position: relative; z-index: 2; width: 67%; padding: 37px 42px 39px; }
+.pottel-dashboard-eyebrow { display: flex; align-items: center; gap: 9px; letter-spacing: .13em; font-size: 10px; font-weight: 800; color: #b5c9e7; }
+.pottel-dashboard-gold-dot { width: 7px; height: 7px; background: var(--pd-gold); border-radius: 50%; box-shadow: 0 0 0 4px rgba(245,184,14,.12); }
+.pottel-dashboard-date { margin: 25px 0 11px; color: #c9d9ee; font-size: 13px; text-transform: capitalize; }
+.pottel-dashboard-date .anticon { margin-right: 5px; color: var(--pd-gold); }
+.pottel-dashboard-hero h1 { margin: 0; font-size: clamp(27px, 3.1vw, 39px); line-height: 1.14; letter-spacing: -.035em; font-weight: 750; color: #fff; }
+.pottel-dashboard-hero h1 span { color: #ffd45e; overflow-wrap: anywhere; }
+.pottel-dashboard-hero-description { margin: 15px 0 22px; color: #c9d8ed; font-size: 13px; line-height: 1.75; max-width: 560px; }
+.pottel-dashboard-hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 11px; }
+.pottel-dashboard-hero-actions .ant-btn-primary { background: var(--pd-gold); border-color: var(--pd-gold); color: #12233f; font-weight: 700; box-shadow: none; }
+.pottel-dashboard-hero-actions .ant-btn-primary:not(:disabled):hover { background: #ffd45e; border-color: #ffd45e; color: #10203c; }
+.pottel-dashboard-hero-secondary.ant-btn { color: #e7effa; border-color: rgba(228,236,251,.35); background: rgba(255,255,255,.07); }
+.pottel-dashboard-hero-secondary.ant-btn:hover { color: white; border-color: rgba(255,255,255,.7); background: rgba(255,255,255,.13); }
+.pottel-dashboard-hero-art { position: absolute; right: 0; top: 0; bottom: 0; width: 37%; pointer-events: none; }
+.pottel-dashboard-hero-halo { position: absolute; right: 9%; bottom: -43%; width: 85%; aspect-ratio: 1; border-radius: 50%; background: radial-gradient(circle, rgba(245,184,14,.33), transparent 65%); }
+.pottel-dashboard-mascot { position: absolute; max-width: 76%; width: 270px; max-height: 92%; object-fit: contain; object-position: bottom; bottom: -5px; right: 8%; filter: drop-shadow(0 15px 20px rgba(0,0,0,.22)); }
+.pottel-dashboard-sim { position: absolute; width: 90px; height: 58px; border: 1px solid rgba(255,226,127,.5); border-radius: 8px; background: linear-gradient(145deg, #eab83d, #b98016); transform: rotate(-17deg); box-shadow: 0 10px 24px rgba(0,0,0,.15); }
+.pottel-dashboard-sim span { position: absolute; width: 22px; height: 18px; border-radius: 4px; border: 2px solid rgba(80,54,10,.28); top: 17px; left: 25px; }
+.pottel-dashboard-sim-one { top: 12%; left: 7%; opacity: .7; }
+.pottel-dashboard-sim-two { bottom: 12%; left: 3%; transform: rotate(22deg) scale(.75); opacity: .34; background: linear-gradient(135deg, #93bde7, #2f74c6); }
+.pottel-dashboard-section { margin-top: 32px; }
+.pottel-dashboard-section-title { display: flex; align-items: end; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 15px; }
+.pottel-dashboard-section-kicker { color: #3372b3; font-size: 10px; font-weight: 800; letter-spacing: .14em; }
+.pottel-dashboard-section-title h2 { font-size: 21px; line-height: 1.25; margin: 5px 0 0; letter-spacing: -.02em; font-weight: 750; color: var(--pd-text); }
+.pottel-dashboard-section-hint { color: var(--pd-muted); font-size: 12px; }
+.pottel-dashboard-metrics { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 15px; }
+.pottel-dashboard-metric { background: #fff; border: 1px solid #e4eaf1; border-radius: 17px; min-height: 165px; padding: 20px; box-shadow: 0 5px 17px rgba(20,50,96,.035); display: flex; flex-direction: column; align-items: flex-start; }
+.pottel-dashboard-metric-icon { width: 39px; height: 39px; display: inline-grid; place-items: center; border-radius: 12px; font-size: 20px; margin-bottom: 14px; }
+.pottel-dashboard-metric-icon.is-blue { color: #2364bb; background: #eaf2ff; }
+.pottel-dashboard-metric-icon.is-gold { color: #ac7300; background: #fff4d5; }
+.pottel-dashboard-metric-icon.is-indigo { color: #6159bb; background: #efedff; }
+.pottel-dashboard-metric-icon.is-green { color: #087a73; background: #e5f7f2; }
+.pottel-dashboard-metric-label { color: #65738a; font-size: 12px; font-weight: 600; }
+.pottel-dashboard-metric-value { color: var(--pd-text); margin: 5px 0 1px; font-size: 32px; line-height: 1.2; font-weight: 800; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.pottel-dashboard-metric-value span { font-size: 12px; font-weight: 500; letter-spacing: 0; color: #76839a; }
+.pottel-dashboard-metric-footnote { margin-top: auto; color: #8994a7; font-size: 11px; }
+.pottel-dashboard-health-value { margin: 13px 0 4px; font-size: 17px; font-weight: 750; color: #ab6416; display: flex; align-items: center; gap: 8px; }
+.pottel-dashboard-health-value.is-up { color: #087f67; }
+.pottel-dashboard-health-value.is-down { color: #ae3542; }
+.pottel-dashboard-health-indicator { width: 9px; height: 9px; flex: 0 0 9px; border-radius: 50%; background: currentColor; box-shadow: 0 0 0 4px currentColor; outline: 3px solid white; outline-offset: -3px; opacity: .8; }
+.pottel-dashboard-metric-health .ant-btn { padding: 0; margin-top: auto; font-size: 12px; }
+.pottel-dashboard-catalog { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 16px; align-items: start; }
+.pottel-dashboard-catalog-card { background: #fff; border: 1px solid #e4eaf1; border-radius: 18px; overflow: hidden; box-shadow: 0 5px 17px rgba(20,50,96,.035); }
+.pottel-dashboard-catalog-head { display: flex; gap: 14px; align-items: center; padding: 19px 22px; border-bottom: 1px solid #edf1f5; background: linear-gradient(90deg, #fff, #f9fbff); }
+.pottel-dashboard-catalog-icon { display: grid; place-items: center; width: 45px; height: 45px; border-radius: 13px; font-size: 21px; }
+.pottel-dashboard-catalog-icon.is-cost { color: #a36e0b; background: #fff2cf; }
+.pottel-dashboard-catalog-icon.is-revenue { color: #1d61ae; background: #e8f2ff; }
+.pottel-dashboard-catalog-overline { font-size: 10px; color: #7184a2; font-weight: 800; letter-spacing: .08em; }
+.pottel-dashboard-catalog-head h3 { margin: 3px 0 0; font-size: 17px; font-weight: 750; color: #182d4c; }
+.pottel-dashboard-catalog-list { padding: 7px 10px 12px; }
+.pottel-dashboard-report { display: flex; align-items: center; width: 100%; gap: 12px; min-height: 60px; padding: 10px 12px; border: 0; border-bottom: 1px solid #f0f2f6; border-radius: 9px; background: transparent; cursor: pointer; font: inherit; text-align: left; transition: background-color .2s; }
+.pottel-dashboard-report:last-child { border-bottom-color: transparent; }
+.pottel-dashboard-report:hover { background: #f3f7fe; }
+.pottel-dashboard-report:focus-visible { outline: 2px solid var(--pd-blue); outline-offset: -2px; }
+.pottel-dashboard-report-code { min-width: 40px; text-align: center; padding: 6px 7px; border: 1px solid #dce7f4; background: #f3f8fe; border-radius: 7px; color: #2463a9; font-weight: 800; font-size: 11px; font-variant-numeric: tabular-nums; }
+.pottel-dashboard-report-detail { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.pottel-dashboard-report-title { color: #203350; font-size: 13px; font-weight: 600; line-height: 1.4; }
+.pottel-dashboard-report-subtitle { color: #8290a4; font-size: 11px; }
+.pottel-dashboard-report-arrow { color: #94a4b8; font-size: 11px; transition: transform .2s, color .2s; }
+.pottel-dashboard-report:hover .pottel-dashboard-report-arrow { transform: translateX(3px); color: var(--pd-blue); }
+.pottel-dashboard-catalog-warning { background: #fff9eb; color: #90621b; border: 1px solid #f6dfad; border-radius: 10px; padding: 10px 12px; margin-bottom: 12px; font-size: 12px; }
+.pottel-dashboard-bottom { margin-top: 25px; border: 1px solid #dce8f5; background: linear-gradient(110deg,#eef5ff,#f8fbff); border-radius: 16px; padding: 20px 23px; display: flex; align-items: center; gap: 16px; }
+.pottel-dashboard-bottom-icon { display: grid; place-items: center; flex: 0 0 44px; height: 44px; border-radius: 12px; color: #2169b0; background: #dcecff; font-size: 22px; }
+.pottel-dashboard-bottom-copy { flex: 1; }
+.pottel-dashboard-bottom-copy h2 { color: #1a3761; font-size: 14px; margin: 0 0 5px; font-weight: 750; }
+.pottel-dashboard-bottom-copy p { margin: 0; color: #6e7d92; line-height: 1.6; font-size: 12px; }
+.pottel-dashboard-bottom-status { color: #2f6d66; font-size: 11px; max-width: 186px; line-height: 1.6; display: flex; gap: 9px; align-items: center; }
+.pottel-dashboard-bottom-status .anticon { font-size: 16px; flex: 0 0 16px; }
+.pottel-dashboard-footer { text-align: center; color: #a5afbd; font-size: 10px; letter-spacing: .09em; margin: 27px 0 4px; }
+.pottel-dashboard-footer span { margin: 0 6px; }
+@media (max-width: 1200px) { .pottel-dashboard-metrics { grid-template-columns: repeat(2,minmax(0,1fr)); } .pottel-dashboard-hero-copy { width: 70%; } }
+@media (max-width: 900px) { .pottel-dashboard-hero-copy { width: 79%; padding: 29px 28px; } .pottel-dashboard-hero-art { opacity: .42; } .pottel-dashboard-catalog { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .pottel-dashboard-hero { min-height: auto; } .pottel-dashboard-hero-copy { width: 100%; padding: 27px 22px 32px; } .pottel-dashboard-hero-art { display: none; } .pottel-dashboard-hero h1 { font-size: 28px; } .pottel-dashboard-section { margin-top: 24px; } .pottel-dashboard-metrics { gap: 10px; } .pottel-dashboard-metric { padding: 15px; min-height: 155px; } .pottel-dashboard-metric-value { font-size: 27px; } .pottel-dashboard-health-value { font-size: 13px; } .pottel-dashboard-bottom { align-items: flex-start; padding: 18px; flex-wrap: wrap; } .pottel-dashboard-bottom-status { max-width: none; } .pottel-dashboard-report { padding: 10px 7px; } .pottel-dashboard-catalog-head { padding: 17px; } }
+@media (prefers-reduced-motion: reduce) { .pottel-dashboard-report, .pottel-dashboard-report-arrow { transition: none; } }

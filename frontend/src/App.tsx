@@ -19,12 +19,12 @@ import { currentAdmin, logoutAdmin, type AdminIdentity } from './features/auth/a
 
 const { Content } = Layout
 
-function HomeRoute() {
+function HomeRoute({ adminUsername }: { adminUsername: string }) {
   const location = useLocation()
   if (new URLSearchParams(location.search).get('view') === 'reports') {
     return <Navigate to="/reports/cost/i1" replace />
   }
-  return <DashboardPage />
+  return <DashboardPage adminUsername={adminUsername} />
 }
 
 function ReportRoute({ group }: { group: 'cost' | 'revenue' }) {
@@ -64,7 +64,7 @@ function AppLayout({ admin, onLogout }: { admin: AdminIdentity; onLogout: () => 
         />
         <Content className="app-content">
           <Routes>
-            <Route path="/" element={<HomeRoute />} />
+            <Route path="/" element={<HomeRoute adminUsername={admin.username} />} />
             <Route path="/login" element={<Navigate to="/" replace />} />
             <Route path="/reports/cost" element={<Navigate to="/reports/cost/i1" replace />} />
             <Route path="/reports/revenue" element={<Navigate to="/reports/revenue/ii1" replace />} />
